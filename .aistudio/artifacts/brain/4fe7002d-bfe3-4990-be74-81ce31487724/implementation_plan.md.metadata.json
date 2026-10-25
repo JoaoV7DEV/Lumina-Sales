@@ -1,0 +1,6 @@
+{
+  "summary":  "Plano detalhado de implementação para o Lumina Sales V1.2 contemplando:\n- Refinamento visual: ampliação do layout desktop (w-full max-w-7xl/fluid), tipografia balanceada (títulos 26-32px, botões 40-44px), modo escuro/claro funcional e persistente com classes de tema e tokens semânticos.\n- Cadastro ágil: modo rápido (Nome, WhatsApp/Instagram, Nicho, Notas) como padrão + modo completo retrátil (oportunidades na bio/site, detalhes comerciais).\n- Funil Comercial Real: 14 etapas integradas agrupadas em 6 fases (Prospecção, Apresentação, Referências, Produção, Pagamento, Pós-venda) com visualização Kanban em abas e status independentes.\n- Catálogo Comercial e Scripts: todas as categorias, variantes por nicho (13 nichos da pág 22), áudios transcritos como texto, objeções e follow-ups, com substituição automática de variáveis ([Nome], {nome}, {seu nome} = 'João').\n- Duas Tabelas de Preços Oficiais: Tabela 1 (R$ 29,30 a R$ 139,90) e Tabela 2 (R$ 34,90 a R$ 547,90 com brindes e Instabio).\n- Biblioteca de Criativos com Upload em IndexedDB e Central de Atendimento Assistido para WhatsApp.",
+  "updatedAt":  "2026-10-25T20:57:13.694435744Z",
+  "requestFeedback":  true,
+  "userFacing":  true
+}
