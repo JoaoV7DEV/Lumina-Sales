@@ -92,12 +92,15 @@ function migrateAndEnrichState(rawState: DatabaseState): DatabaseState {
   const missingPackages = OFFICIAL_PACKAGES.filter((p) => !existingPackageIds.has(p.id));
   const mergedPackages = [...existingPackages, ...missingPackages];
 
-  // 4. Garantir configurações com nome do atendente padrão (João)
+  // 4. Garantir configurações com nome do atendente padrão (João) e novas metas
   const rawSettings = rawState.settings || {};
   const settings: AppSettings = {
     attendantName: rawSettings.attendantName || 'João',
     defaultPriceTable: rawSettings.defaultPriceTable || 'tabela_1',
     dailyGoal: rawSettings.dailyGoal || 20,
+    dailyRevenueGoal: rawSettings.dailyRevenueGoal || 150,
+    monthlyRevenueGoal: rawSettings.monthlyRevenueGoal || 3500,
+    sidebarCollapsed: rawSettings.sidebarCollapsed || false,
     theme: rawSettings.theme || 'dark',
     timezone: rawSettings.timezone || 'America/Sao_Paulo',
     isDemoData: rawSettings.isDemoData !== undefined ? rawSettings.isDemoData : true,
@@ -106,7 +109,7 @@ function migrateAndEnrichState(rawState: DatabaseState): DatabaseState {
 
   return {
     ...rawState,
-    version: '1.2.0',
+    version: '1.3.0',
     leads: migratedLeads,
     scripts: mergedScripts,
     packages: mergedPackages,

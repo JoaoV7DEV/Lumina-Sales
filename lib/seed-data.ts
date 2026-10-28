@@ -1834,7 +1834,7 @@ export const DEMO_EXPERIMENTS: Experiment[] = [
 ];
 
 export const INITIAL_DATABASE_STATE: DatabaseState = {
-  version: '1.2.0',
+  version: '1.3.0',
   lastUpdated: new Date().toISOString(),
   leads: DEMO_LEADS,
   scripts: OFFICIAL_SCRIPTS,
@@ -1849,6 +1849,9 @@ export const INITIAL_DATABASE_STATE: DatabaseState = {
     attendantName: 'João',
     defaultPriceTable: 'tabela_1',
     dailyGoal: 20,
+    dailyRevenueGoal: 150,
+    monthlyRevenueGoal: 3500,
+    sidebarCollapsed: false,
     theme: 'dark',
     timezone: 'America/Sao_Paulo',
     isDemoData: true,

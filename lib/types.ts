@@ -292,6 +292,9 @@ export interface AppSettings {
   attendantName: string; // Padrão "João"
   defaultPriceTable: 'tabela_1' | 'tabela_2';
   dailyGoal: number;
+  dailyRevenueGoal?: number; // Meta de faturamento diário (ex: R$ 150)
+  monthlyRevenueGoal?: number; // Meta de faturamento mensal (ex: R$ 3500)
+  sidebarCollapsed?: boolean; // Estado da sidebar no desktop (recolhida ou expandida)
   theme: 'dark' | 'light';
   timezone: string;
   isDemoData: boolean;

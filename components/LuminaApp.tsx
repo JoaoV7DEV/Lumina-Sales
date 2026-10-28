@@ -15,18 +15,23 @@ import { CommercialLabView } from '@/components/views/CommercialLabView';
 import { FinancialView } from '@/components/views/FinancialView';
 import { ReportsAndTasksView } from '@/components/views/ReportsAndTasksView';
 import { CheckCircle2 } from 'lucide-react';
+import { BrandLogo } from '@/components/BrandLogo';
 
 function AppContent() {
-  const { activeTab, loading, toastMessage } = useLumina();
+  const { activeTab, loading, toastMessage, state, updateSettings } = useLumina();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
+
+  const isSidebarCollapsed = Boolean(state.settings?.sidebarCollapsed);
+
+  const handleToggleSidebarCollapse = () => {
+    updateSettings({ sidebarCollapsed: !isSidebarCollapsed });
+  };
 
   if (loading) {
     return (
       <div className="min-h-screen bg-[#0d111a] flex flex-col items-center justify-center p-4">
-        <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-[#E6C387] to-[#C9A46B] flex items-center justify-center text-slate-950 font-bold text-2xl font-serif animate-pulse shadow-xl shadow-[#C9A46B]/20">
-          L
-        </div>
+        <BrandLogo size="lg" showText={false} className="animate-pulse" />
         <p className="text-base font-semibold text-white mt-4 tracking-wide">
           Carregando Lumina Sales...
         </p>
@@ -39,10 +44,12 @@ function AppContent() {
 
   return (
     <div className="min-h-screen flex bg-slate-50 dark:bg-[#0c1017] text-slate-900 dark:text-slate-100 transition-colors selection:bg-[#C9A46B]/30 selection:text-white">
-      {/* Menu Lateral na Esquerda (Sidebar Semelhante à Referência) */}
+      {/* Menu Lateral na Esquerda (Sidebar Desktop Recolhível & Drawer Mobile) */}
       <Sidebar
         mobileOpen={isMobileSidebarOpen}
         onCloseMobile={() => setIsMobileSidebarOpen(false)}
+        isCollapsed={isSidebarCollapsed}
+        onToggleCollapse={handleToggleSidebarCollapse}
       />
 
       {/* Conteúdo Principal com TopHeader e Views */}
@@ -54,7 +61,7 @@ function AppContent() {
         />
 
         {/* Visualização da Aba Ativa */}
-        <main className="flex-1 w-full max-w-[1520px] mx-auto p-4 sm:p-6 lg:p-8">
+        <main className="flex-1 w-full max-w-[1580px] mx-auto p-3.5 sm:p-6 lg:p-8">
           {activeTab === 'dashboard' && <DashboardView />}
           {activeTab === 'leads' && <LeadsView />}
           {activeTab === 'crm' && <CrmKanbanView />}

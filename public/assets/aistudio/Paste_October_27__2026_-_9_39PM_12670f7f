@@ -1,0 +1,1013 @@
+# LUMINA SALES V1.3 — DASHBOARD EXPERIENCE UPDATE
+## Google AI Studio | UI/UX, CRM Analytics, Goals & Responsive Layout
+
+Atue como um engenheiro full-stack sênior, arquiteto de software, especialista em React/TypeScript, UI/UX de plataformas SaaS, design responsivo, visualização de dados, CRM e otimização de aplicativos web.
+
+Sua tarefa é **EVOLUIR O DASHBOARD EXISTENTE DO LUMINA SALES V1.2 PARA A VERSÃO V1.3**, melhorando a experiência em desktop, tablet e smartphone.
+
+## REGRA FUNDAMENTAL — PRESERVAÇÃO DO PROJETO
+
+**NÃO CRIE UM NOVO APLICATIVO. NÃO RECONSTRUA O SISTEMA DO ZERO.**
+
+Trabalhe diretamente no código existente.
+
+O aplicativo já possui:
+
+- Dashboard operacional.
+- Cadastro e gerenciamento de leads.
+- CRM.
+- Central de atendimento.
+- Biblioteca de scripts.
+- Galeria de criativos.
+- Laboratório de Testes A/B.
+- Financeiro.
+- Relatórios.
+- Configurações.
+- Base demonstrativa e base real.
+- Persistência local via IndexedDB.
+
+**A atualização será limitada ao Dashboard e aos componentes globais de navegação necessários para melhorar a responsividade, os temas e a sidebar.**
+
+Não alterar o conteúdo, formulários, regras de negócio ou funcionalidades internas das demais páginas.
+
+A sidebar e o cabeçalho poderão ser refinados por serem componentes compartilhados, mas todas as rotas e funcionalidades existentes devem continuar funcionando.
+
+Antes de implementar:
+
+1. Inspecionar a arquitetura e os componentes atuais.
+2. Identificar como o dashboard obtém seus dados.
+3. Identificar como são armazenadas metas e preferências.
+4. Verificar os modelos existentes de leads, tarefas, abordagens, vendas, pagamentos e despesas.
+5. Preservar a estrutura persistente e criar uma estratégia segura para qualquer alteração necessária.
+6. Não executar operações destrutivas no IndexedDB.
+7. Não apagar, substituir ou reinicializar dados reais ou demonstrativos.
+
+---
+
+# 1. DIREÇÃO VISUAL — MANTER O ESTILO V1.2
+
+O design atual já possui boa identidade visual e deve ser preservado.
+
+Manter:
+
+- Fundo azul-marinho profundo.
+- Superfícies em preto suave e azul escuro.
+- Cards com bordas discretas.
+- Detalhes dourados.
+- Verde para indicadores financeiros positivos.
+- Amarelo/âmbar para avisos e pendências.
+- Tipografia moderna e legível.
+- Layout amplo.
+- Ícones Lucide ou equivalentes.
+- Elementos bem distribuídos.
+- Hierarquia visual profissional.
+
+O objetivo não é criar um design diferente, mas deixar o atual **mais funcional, confortável, consistente e refinado**.
+
+Evitar:
+
+- Excesso de informações concentradas em uma área.
+- Fontes pequenas demais.
+- Cards muito apertados.
+- Espaçamentos irregulares.
+- Bordas e sombras exageradas.
+- Grandes áreas vazias sem propósito.
+- Efeitos visuais excessivos.
+- Aparência de dashboard genérico.
+
+O resultado deverá parecer uma plataforma SaaS comercial moderna, com qualidade de interface profissional e excelente usabilidade.
+
+---
+
+# 2. RECUPERAR A CENTRAL DE ATENÇÃO COMERCIAL
+
+Na versão anterior havia um painel que mostrava individualmente os contatos que precisavam de acompanhamento.
+
+Na versão atual esse recurso foi simplificado, prejudicando a operação comercial.
+
+**Recuperar e melhorar essa funcionalidade.**
+
+Criar um painel chamado:
+
+**"Próximos retornos e acompanhamentos"**
+
+Ele deverá exibir leads que precisam de atenção, utilizando os dados reais existentes.
+
+### Informações de cada contato
+
+- Nome.
+- Nicho profissional.
+- Etapa atual do CRM.
+- Situação do atendimento.
+- Motivo do acompanhamento.
+- Última interação registrada.
+- Data do próximo retorno.
+- Próxima ação planejada.
+- Indicador de atraso, quando aplicável.
+- Botão para abrir a ficha ou atendimento do lead.
+
+### Categorias de acompanhamento
+
+Organizar os registros em:
+
+**Sem resposta:** contatos abordados que ainda não responderam.
+
+**Visualizou e não respondeu:** contatos em que essa informação foi marcada manualmente pelo usuário.
+
+**Follow-up pendente:** contatos com tarefa de acompanhamento cadastrada.
+
+**Remarketing:** contatos com nova oportunidade comercial ou acompanhamento futuro planejado.
+
+**Negociação pendente:** contatos interessados que aguardam alguma ação comercial.
+
+Não interpretar automaticamente ausência de resposta como visualização confirmada.
+
+Não inventar datas nem mensagens recebidas.
+
+### Interface
+
+Criar filtros rápidos:
+
+- Atrasados.
+- Hoje.
+- Próximos.
+- Todos.
+
+Ordenar prioritariamente por data de retorno, destacando tarefas vencidas.
+
+Mostrar inicialmente até cinco contatos, com opção "Ver todos".
+
+Evitar listas extremamente longas ocupando o dashboard.
+
+O botão individual deve abrir a ficha ou atendimento do lead por uma rota já existente.
+
+Caso seja possível, permitir concluir uma tarefa diretamente no painel, registrando a conclusão no histórico.
+
+### Regras
+
+O acompanhamento não deve modificar automaticamente a etapa comercial do lead.
+
+Follow-up e remarketing devem funcionar como etiquetas, tarefas ou situações independentes.
+
+Não enviar mensagens automaticamente.
+
+Não realizar disparos de WhatsApp.
+
+O aplicativo deve apenas auxiliar na organização e execução manual do atendimento.
+
+---
+
+# 3. RECUPERAR E AMPLIAR O DESEMPENHO POR NICHO
+
+Restaurar o painel **"Desempenho por Nicho"** que existia na versão anterior.
+
+A nova versão deve oferecer dados mais úteis para avaliar os nichos da Lumina Studio.
+
+### Indicadores por nicho
+
+Mostrar:
+
+- Nome do nicho.
+- Quantidade de leads cadastrados.
+- Quantidade de leads abordados.
+- Quantidade de contatos que responderam.
+- Quantidade de interessados.
+- Vendas fechadas.
+- Receita atribuída.
+- Taxa de resposta.
+- Taxa de conversão.
+
+Não confundir leads cadastrados com leads efetivamente abordados.
+
+As taxas devem utilizar denominadores corretos.
+
+Exemplo de cálculo:
+
+Taxa de resposta = contatos distintos que responderam / contatos distintos abordados dentro da mesma população analisada.
+
+Taxa de conversão da prospecção = contatos distintos abordados que compraram / contatos distintos abordados da mesma população.
+
+Vendas de contatos não provenientes da prospecção devem ser identificadas separadamente, não artificialmente incluídas na conversão.
+
+### Visualização
+
+Utilizar uma tabela analítica compacta, porém legível, acompanhada de barras discretas.
+
+No desktop, permitir alternar entre:
+
+- Quantidade de abordagens.
+- Taxa de resposta.
+- Quantidade de vendas.
+- Receita.
+- Taxa de conversão.
+
+Quando houver vínculos de serviço suficientes, permitir filtrar por:
+
+- Ensaios fotográficos com IA.
+- Link na bio / Biosite.
+- Sites personalizados.
+- Outros serviços.
+- Todos.
+
+Não inventar classificações de serviços quando as informações não estiverem disponíveis na base.
+
+Ordenar os nichos por desempenho conforme o indicador escolhido.
+
+Evitar concluir automaticamente que um nicho é o melhor com base em amostras pequenas.
+
+Quando um nicho não possuir dados suficientes, exibir o estado correspondente.
+
+### Mobile
+
+Exibir uma lista de cards compactos por nicho, em vez de uma tabela horizontal impossível de ler.
+
+Cada card deve apresentar os indicadores principais e permitir expandir os detalhes.
+
+Nenhum conteúdo deve ser cortado lateralmente.
+
+---
+
+# 4. IMPLEMENTAR METAS FINANCEIRAS
+
+Adicionar ao Dashboard um módulo chamado:
+
+**"Metas Comerciais e Financeiras"**
+
+Ele deve complementar a meta de abordagens já existente.
+
+### Meta 1 — Abordagens diárias
+
+Preservar a meta operacional atual.
+
+Permitir configurar a quantidade desejada por dia, como 20, 40, 50 ou 60 abordagens.
+
+A meta deve permanecer editável.
+
+Mostrar:
+
+- Quantidade realizada.
+- Meta definida.
+- Percentual de progresso.
+- Quantidade restante.
+- Estado de meta atingida.
+
+Contabilizar apenas abordagens realmente registradas e confirmadas.
+
+### Meta 2 — Faturamento diário
+
+Permitir que o usuário configure uma meta de faturamento para o dia.
+
+Apresentar:
+
+- Meta financeira.
+- Faturamento realizado no dia.
+- Valor restante.
+- Percentual atingido.
+- Barra de progresso.
+
+### Meta 3 — Faturamento mensal
+
+Permitir configurar a meta de faturamento do mês.
+
+Exibir:
+
+- Valor da meta.
+- Faturamento acumulado no mês.
+- Valor restante.
+- Percentual atingido.
+- Indicador de meta alcançada.
+
+### Regras financeiras
+
+Para as metas de faturamento, utilizar por padrão a soma das vendas válidas fechadas no período, considerando descontos e cancelamentos conforme a modelagem financeira existente.
+
+Separar claramente faturamento de dinheiro efetivamente recebido.
+
+Não confundir:
+
+- Faturamento / valor vendido.
+- Valor recebido em caixa.
+- Despesas.
+- Resultado operacional.
+- Lucro líquido.
+
+Quando não houver dados financeiros suficientes para apurar lucro líquido real, utilizar a nomenclatura **"Resultado operacional estimado"**.
+
+Se o indicador utilizar o regime de caixa, considerar recebimentos menos despesas efetivamente pagas do mesmo período, apresentando claramente a metodologia.
+
+Não declarar como lucro líquido algo que desconsidere custos relevantes.
+
+### Experiência de uso
+
+Criar barras de progresso com transições suaves.
+
+Quando a meta for alcançada, mostrar uma confirmação visual discreta.
+
+Permitir que o progresso ultrapasse 100% matematicamente, mas limitar o preenchimento gráfico ao comprimento máximo da barra.
+
+Exemplo: meta de R$ 100 e faturamento de R$ 150 = 150% atingido.
+
+Não mostrar porcentagens enganosas.
+
+### Armazenamento
+
+Salvar metas e preferências de maneira persistente.
+
+Reutilizar o mecanismo de configurações existente quando possível, sem modificar visualmente a página de Configurações nesta atualização.
+
+Caso seja necessário acrescentar campos ao armazenamento, implementar migração segura e compatível com os dados anteriores.
+
+---
+
+# 5. PRESERVAR E MELHORAR O DESAFIO DE PROSPECÇÃO
+
+O Dashboard V1.2 apresenta um recurso de desafio comercial de 30 dias.
+
+Preservar essa funcionalidade, mas reduzir seu peso visual caso esteja competindo com informações operacionais mais importantes.
+
+A meta diária e os clientes que precisam de retorno devem continuar sendo prioridades.
+
+Permitir:
+
+- Visualizar a sequência de dias.
+- Ver progresso do dia.
+- Identificar dias com meta concluída.
+- Verificar a situação atual.
+
+Não inventar registros de dias anteriores.
+
+Não considerar a sequência de dias concluída quando não houver abordagens confirmadas.
+
+O desafio pode funcionar como elemento opcional de motivação.
+
+Evitar que ele ocupe uma área muito grande do dashboard, especialmente no celular.
+
+---
+
+# 6. IMPLEMENTAR FILTROS COMPLETOS DE PERÍODO
+
+Atualizar a navegação temporal do Dashboard.
+
+Criar opções:
+
+- Hoje.
+- Últimos 7 dias.
+- Últimos 14 dias.
+- Últimos 30 dias.
+- Mês atual.
+- Todo o período.
+- Personalizado.
+
+### Período personalizado
+
+Permitir selecionar:
+
+- Data inicial.
+- Data final.
+
+Utilizar um calendário confortável e responsivo.
+
+Validar as datas.
+
+Não permitir intervalo inválido.
+
+Aplicar os filtros de maneira consistente às métricas históricas, gráficos e análises comerciais.
+
+### Regras importantes
+
+Distinguir:
+
+**Indicadores acumulados:** como total atual de leads cadastrados.
+
+**Indicadores por período:** abordagens, respostas, vendas e recebimentos ocorridos dentro do intervalo.
+
+Deixar claro na interface quando um indicador representa um total acumulado ou uma movimentação do período selecionado.
+
+O filtro temporal não deve produzir porcentagens sem significado.
+
+### Fuso horário
+
+Utilizar o fuso configurado pelo aplicativo, inicialmente America/Sao_Paulo (UTC−03:00), se essa já for a configuração existente.
+
+Evitar deslocamento de datas ao converter timestamps UTC.
+
+Considerar corretamente o início e o fim dos dias locais.
+
+---
+
+# 7. MELHORAR O GRÁFICO DE EVOLUÇÃO DIÁRIA
+
+Preservar o componente de desempenho diário, mas melhorar a apresentação.
+
+Criar o título:
+
+**"Evolução Comercial"**
+
+Subtítulo:
+
+"Acompanhe abordagens, vendas e resultados ao longo do período."
+
+Permitir alternar entre:
+
+- Abordagens realizadas.
+- Vendas fechadas.
+- Faturamento.
+- Valor recebido.
+
+Os dados devem refletir registros existentes.
+
+Não apresentar dados fictícios como reais.
+
+Quando não houver movimentações, mostrar estado vazio elegante e legível, sem criar barras artificiais.
+
+Permitir consultar valores ao passar o mouse no desktop ou tocar nos pontos no celular.
+
+O gráfico deve respeitar o período selecionado.
+
+No mobile, adaptar rótulos, quantidade de marcações e espaçamento para evitar cortes e sobreposição.
+
+Não usar um gráfico muito alto quando existem poucos dados.
+
+---
+
+# 8. CRIAR SIDEBAR RECOLHÍVEL NO DESKTOP
+
+A sidebar atual ocupa largura fixa.
+
+Implementar dois estados:
+
+### Expandida
+
+Exibir:
+
+- Ícone.
+- Nome da seção.
+- Identidade Lumina Sales.
+- Indicadores auxiliares.
+- Configurações.
+
+### Recolhida
+
+Exibir apenas:
+
+- Ícones das seções.
+- Ícone da marca.
+- Indicadores essenciais.
+- Acesso às configurações.
+
+A sidebar recolhida deve continuar funcional.
+
+Mostrar tooltip com o nome da seção ao passar o mouse sobre cada ícone.
+
+### Comportamento visual
+
+Criar uma transição suave entre os estados, preferencialmente entre 180 e 250 ms.
+
+O conteúdo principal deve expandir automaticamente quando a sidebar diminuir.
+
+Não deixar um espaço vazio reservado à sidebar expandida.
+
+Preservar a seção ativa.
+
+Salvar a preferência de sidebar expandida/recolhida localmente.
+
+Utilizar um controle visível para alternar os estados.
+
+### Atenção ao escopo
+
+A sidebar é um componente global.
+
+Sua atualização poderá aparecer nas demais páginas, mas não alterar suas funcionalidades internas, formulários ou regras comerciais.
+
+---
+
+# 9. REORGANIZAR CONTROLES DO CABEÇALHO
+
+O cabeçalho atual apresenta excesso de elementos, principalmente no celular.
+
+Reorganizar:
+
+- Busca.
+- Novo Lead.
+- Cronômetro.
+- Alternância de tema.
+- Base real / exemplo.
+- Navegação.
+
+### Modo claro e escuro
+
+Mover o controle de tema para a sidebar no desktop.
+
+No celular, colocá-lo dentro do menu lateral.
+
+Preservar a preferência de tema atual.
+
+Garantir funcionamento de ambos os temas.
+
+### Base real / exemplo
+
+Mover o seletor de dados para uma área claramente identificável na sidebar ou menu lateral.
+
+O usuário deve conseguir alternar entre bases no desktop e no celular.
+
+Adicionar indicação discreta, mas visível, do modo ativo no cabeçalho ou próximo ao título da página.
+
+Não permitir confusão entre dados demonstrativos e reais.
+
+Não misturar os registros das duas bases.
+
+### Novo Lead
+
+No desktop, o botão pode continuar apresentando ícone e texto quando houver espaço suficiente.
+
+No celular, utilizar um botão quadrado com cantos arredondados, contendo um ícone reconhecível de adicionar contato, como UserRoundPlus.
+
+Adicionar tooltip e nome acessível:
+
+"Adicionar novo lead".
+
+O botão deve continuar abrindo o cadastro já existente.
+
+Não modificar o formulário de cadastro nesta atualização.
+
+---
+
+# 10. CORRIGIR COMPLETAMENTE A RESPONSIVIDADE MOBILE
+
+As capturas atuais demonstram problemas de overflow horizontal, cortes de botões, textos e cards.
+
+Esses problemas devem ser tratados como prioridade técnica.
+
+### Objetivo
+
+O Dashboard deve funcionar adequadamente em:
+
+- 320px.
+- 360px.
+- 375px.
+- 390px.
+- 414px.
+- 768px.
+- 1024px.
+- 1440px.
+- 1920px.
+
+Testar também resoluções intermediárias.
+
+### Cabeçalho mobile
+
+Exibir apenas controles essenciais:
+
+- Menu.
+- Busca compacta.
+- Adicionar lead.
+
+O cronômetro poderá aparecer de forma compacta quando houver espaço, ou ficar acessível no menu.
+
+Tema e modo Exemplo/Real devem ficar acessíveis no drawer lateral.
+
+Não permitir que os ícones ultrapassem a largura da tela.
+
+### Sidebar mobile
+
+Utilizar um drawer responsivo.
+
+O menu deve:
+
+- Abrir sobre o conteúdo.
+- Fechar corretamente.
+- Permitir navegação por toque.
+- Fechar ao escolher uma seção.
+- Respeitar foco e acessibilidade.
+- Não deixar overlays invisíveis.
+
+### Cards
+
+Organizar:
+
+- Cards principais em duas colunas, quando houver espaço suficiente.
+- Uma coluna em telas mais estreitas.
+- Painéis detalhados em uma coluna.
+- Gráficos adaptados à largura disponível.
+- Listas de acompanhamentos em cartões verticais.
+
+Evitar min-width fixo que ultrapasse a viewport.
+
+### Textos
+
+Permitir quebra de linha apropriada.
+
+Não cortar títulos.
+
+Não esconder informações importantes por overflow.
+
+Respeitar espaços de toque e tamanhos mínimos confortáveis.
+
+### Problemas que devem desaparecer
+
+- Botão Novo Lead cortado.
+- Cabeçalho ultrapassando a tela.
+- Cards parcialmente invisíveis.
+- Textos saindo dos contêineres.
+- Sidebar ocupando largura indevida.
+- Controles de tema inacessíveis.
+- Modo de dados inacessível.
+- Rolagem horizontal da página inteira.
+
+Não solucionar esses problemas simplesmente colocando overflow-x: hidden no body.
+
+Identificar e corrigir os elementos que provocam o overflow.
+
+---
+
+# 11. MELHORAR O ÍCONE DA MARCA
+
+Atualmente, a identificação visual da Lumina Sales utiliza apenas uma letra "L" dentro de um quadrado dourado.
+
+Criar uma versão mais refinada e profissional do ícone, sem exigir arquivo externo.
+
+### Direção visual
+
+Desenvolver um monograma simples, inspirado em:
+
+- Letra L.
+- Luz.
+- Fotografia.
+- Clareza.
+- Precisão.
+
+Utilizar SVG vetorial ou componentes equivalentes.
+
+Manter:
+
+- Fundo dourado discreto.
+- Contraste adequado.
+- Formato quadrado com cantos arredondados.
+- Identidade alinhada ao restante do sistema.
+
+Não criar logotipo complexo.
+
+Não usar gradientes exagerados.
+
+O novo símbolo deve continuar legível em tamanhos pequenos, incluindo sidebar recolhida e menu mobile.
+
+Aplicar a mudança apenas à identidade de navegação do aplicativo.
+
+Preservar o nome "Lumina Sales".
+
+---
+
+# 12. ADICIONAR MICROINTERAÇÕES E ANIMAÇÕES
+
+O aplicativo atual apresenta transições muito rápidas e secas.
+
+Adicionar movimento de interface sutil e consistente.
+
+Aplicar a:
+
+- Sidebar expandindo e recolhendo.
+- Drawer mobile.
+- Modais existentes, sem modificar seu conteúdo.
+- Menus suspensos.
+- Alteração de tema.
+- Filtros de período.
+- Expandir e recolher detalhes.
+- Barras de progresso.
+- Mensagens de confirmação.
+- Hover em botões.
+- Alternância entre indicadores dos gráficos.
+
+### Diretrizes
+
+Preferir animações entre 150 e 250 ms.
+
+Utilizar curvas de transição naturais.
+
+Evitar bouncing excessivo, brilhos chamativos ou efeitos longos.
+
+Utilizar transform e opacity quando apropriado.
+
+Respeitar prefers-reduced-motion.
+
+Evitar animações que bloqueiem interação ou prejudiquem desempenho.
+
+Não adicionar dependências grandes apenas para pequenas transições se CSS for suficiente.
+
+---
+
+# 13. REVISAR OS CÁLCULOS FINANCEIROS E COMERCIAIS
+
+Antes de modificar cálculos, identificar as funções e modelos de dados já utilizados.
+
+Validar:
+
+- Quantidade de leads.
+- Abordagens distintas.
+- Respostas.
+- Interessados.
+- Vendas fechadas.
+- Taxa de resposta.
+- Taxa de conversão.
+- Valor vendido.
+- Valor recebido.
+- Saldo pendente.
+- Ticket médio.
+- Despesas.
+- Resultado operacional estimado.
+
+### Regras essenciais
+
+Evitar contagem duplicada.
+
+Não incluir vendas canceladas como vendas válidas.
+
+Não considerar pagamentos pendentes como recebidos.
+
+Tratar corretamente pagamentos parciais.
+
+Não calcular conversão de vendas utilizando abordagens que não possuem relação com aquelas vendas.
+
+Se houver quatro vendas e apenas duas abordagens atribuídas ao mesmo período, não exibir automaticamente conversão de 200%.
+
+Usar coortes compatíveis ou apresentar métricas separadas.
+
+### Fonte única dos dados
+
+O Dashboard deve aproveitar registros existentes.
+
+Não duplicar cálculos de negócio sem necessidade.
+
+Quando possível, centralizar os seletores e agregações estatísticas em funções reutilizáveis, sem alterar os módulos responsáveis pelos cadastros.
+
+### Nomenclatura
+
+Substituir expressões imprecisas quando necessário:
+
+- "Lucro Líquido Real" por "Resultado Operacional Estimado", se os custos não forem completos.
+- "Tempo Real" por "Atualizado pelos registros" ou "Evolução Diária", quando não houver sincronização automática real.
+- "Vendas" por "Vendas Fechadas", quando necessário para clareza.
+
+Não alterar valores armazenados apenas para corrigir seus rótulos.
+
+---
+
+# 14. ORGANIZAÇÃO FINAL DO DASHBOARD
+
+A nova apresentação deve seguir uma hierarquia clara.
+
+### Bloco A — Cabeçalho
+
+- Título "Dashboard Operacional".
+- Subtítulo descritivo.
+- Filtros de período.
+- Ações rápidas.
+- Indicação discreta de Base Real ou Exemplo.
+
+### Bloco B — Indicadores principais
+
+- Leads.
+- Abordagens.
+- Vendas.
+- Valor recebido.
+
+### Bloco C — Atenção imediata
+
+- Leads interessados aguardando avanço.
+- Pagamentos pendentes.
+- Retornos e follow-ups urgentes.
+
+### Bloco D — Metas
+
+- Meta de abordagens.
+- Meta financeira diária.
+- Meta financeira mensal.
+
+### Bloco E — Desempenho comercial
+
+- Desempenho por nicho.
+- Evolução comercial.
+- Distribuição do funil.
+
+### Bloco F — Acompanhamentos e histórico
+
+- Próximos retornos.
+- Atividade recente.
+- Indicadores complementares.
+
+A ordem pode variar entre desktop e mobile para priorizar as ações essenciais.
+
+No mobile, contatos que precisam de retorno e indicadores principais devem aparecer antes de gráficos detalhados e informações secundárias.
+
+Não sobrecarregar a primeira tela.
+
+Utilizar seções organizadas e expansão progressiva quando necessário.
+
+---
+
+# 15. PROTEÇÃO DOS DADOS E COMPATIBILIDADE
+
+Preservar integralmente:
+
+- Leads cadastrados.
+- Etapas do CRM.
+- Mensagens e scripts.
+- Criativos.
+- Experimentos.
+- Vendas.
+- Pagamentos.
+- Despesas.
+- Tarefas.
+- Configurações.
+- Histórico de atividades.
+
+A atualização não pode apagar dados da versão anterior.
+
+Não substituir a base existente por dados de exemplo.
+
+Não alterar os IDs de registros existentes.
+
+Se for necessário evoluir o IndexedDB, usar migrações versionadas.
+
+Não criar tabelas duplicadas com os mesmos registros.
+
+Dados da Base Real e Dados Exemplo devem permanecer isolados.
+
+Não desativar backups existentes.
+
+---
+
+# 16. TESTES E CRITÉRIOS DE ACEITAÇÃO
+
+Executar testes funcionais e visuais.
+
+### Desktop
+
+Verificar:
+
+- Sidebar expandida.
+- Sidebar recolhida.
+- Conteúdo expandindo corretamente.
+- Filtros de período.
+- Calendário personalizado.
+- Metas configuráveis.
+- Painel de retornos.
+- Indicadores por nicho.
+- Tema claro/escuro.
+- Base real/exemplo.
+- Gráficos.
+- Botão Novo Lead.
+- Persistência após atualizar a página.
+
+### Mobile
+
+Verificar:
+
+- Menu lateral.
+- Acesso ao tema.
+- Acesso à Base Real/Exemplo.
+- Botão de adicionar lead.
+- Busca.
+- Cards responsivos.
+- Painel de acompanhamentos.
+- Desempenho por nicho.
+- Gráficos.
+- Calendário.
+- Metas.
+- Ausência de overflow horizontal.
+- Ausência de componentes cortados.
+
+### Regressão
+
+Após as mudanças globais da navegação, verificar se continuam acessíveis:
+
+- Leads.
+- CRM.
+- Atendimento.
+- Scripts.
+- Criativos.
+- Testes A/B.
+- Financeiro.
+- Relatórios.
+- Configurações.
+
+Não alterar o funcionamento interno dessas páginas.
+
+### Testes de cálculos
+
+Verificar:
+
+- Meta abaixo de 100%.
+- Meta exatamente em 100%.
+- Meta acima de 100%.
+- Períodos sem vendas.
+- Pagamentos parciais.
+- Vendas canceladas.
+- Leads sem abordagem.
+- Leads abordados sem resposta.
+- Follow-ups atrasados.
+- Mudança de mês.
+- Filtro personalizado.
+- Dados demonstrativos separados dos reais.
+
+Quando houver dados insuficientes, exibir estado apropriado.
+
+Não inventar resultados.
+
+---
+
+# 17. ORDEM OBRIGATÓRIA DE IMPLEMENTAÇÃO
+
+Executar as mudanças nesta ordem:
+
+**ETAPA 1 — Auditoria técnica**
+
+Inspecionar o aplicativo e identificar as causas dos problemas de responsividade e eventuais inconsistências de cálculo.
+
+**ETAPA 2 — Proteção de dados**
+
+Garantir integridade do IndexedDB e compatibilidade das configurações.
+
+**ETAPA 3 — Layout global**
+
+Implementar sidebar recolhível, reorganização do cabeçalho e correções responsivas.
+
+**ETAPA 4 — Identidade e interação**
+
+Refinar o ícone, implementar microinterações e revisar os modos claro e escuro.
+
+**ETAPA 5 — Atenção comercial**
+
+Recuperar retornos, follow-ups e remarketing.
+
+**ETAPA 6 — Inteligência comercial**
+
+Recuperar e ampliar desempenho por nicho.
+
+**ETAPA 7 — Metas financeiras**
+
+Implementar metas de faturamento diário e mensal, preservando a meta operacional.
+
+**ETAPA 8 — Períodos e gráficos**
+
+Atualizar os filtros temporais, calendário e gráficos.
+
+**ETAPA 9 — Cálculos**
+
+Validar métricas e corrigir nomenclaturas.
+
+**ETAPA 10 — Testes**
+
+Testar desktop, tablet e smartphone, verificar regressões e persistência.
+
+---
+
+# 18. ENTREGÁVEL FINAL
+
+Atualizar o aplicativo existente para **Lumina Sales V1.3 — Dashboard Experience Update**.
+
+O resultado deverá oferecer:
+
+- Dashboard moderno e confortável.
+- Layout plenamente responsivo.
+- Sidebar recolhível.
+- Cabeçalho mobile corrigido.
+- Indicadores legíveis.
+- Metas operacionais e financeiras.
+- Filtros temporais completos.
+- Recuperação dos acompanhamentos.
+- Desempenho por nicho.
+- Gráficos melhorados.
+- Identidade visual refinada.
+- Animações suaves.
+- Cálculos consistentes.
+- Dados preservados.
+- Outras seções intactas.
+
+Após implementar, apresentar um resumo técnico contendo:
+
+1. Arquivos e componentes alterados.
+2. Funcionalidades restauradas.
+3. Funcionalidades acrescentadas.
+4. Correções responsivas.
+5. Correções de cálculos.
+6. Testes realizados e seus resultados.
+7. Limitações identificadas.
+8. Confirmação de preservação da estrutura existente.
+
+Não afirmar que testes foram executados se não houver evidência de sua execução.
+
+Não declarar a atualização concluída se houver erros conhecidos de funcionamento ou responsividade.
+
+**INSTRUÇÃO FINAL E MAIS IMPORTANTE:**
+
+NÃO RECRIAR O LUMINA SALES.
+
+NÃO MODIFICAR OS MÓDULOS INTERNOS DE LEADS, CRM, ATENDIMENTO, SCRIPTS, CRIATIVOS, TESTES A/B, FINANCEIRO OU RELATÓRIOS.
+
+NÃO APAGAR DADOS DO INDEXEDDB.
+
+NÃO SUBSTITUIR A IDENTIDADE VISUAL ATUAL.
+
+EVOLUIR SOMENTE O DASHBOARD E OS COMPONENTES GLOBAIS DE NAVEGAÇÃO NECESSÁRIOS.
+
+A prioridade é entregar uma atualização funcional, responsiva e confiável, com excelente experiência de uso em desktop e mobile, sem prejudicar nenhuma funcionalidade já existente.
