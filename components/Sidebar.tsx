@@ -22,6 +22,8 @@ import {
   PanelLeftOpen,
 } from 'lucide-react';
 
+import { useAuth } from '@/context/AuthContext';
+
 interface SidebarProps {
   mobileOpen: boolean;
   onCloseMobile: () => void;
@@ -35,7 +37,8 @@ export function Sidebar({
   isCollapsed,
   onToggleCollapse,
 }: SidebarProps) {
-  const { activeTab, setActiveTab, state, toggleTheme, toggleDemoData } = useLumina();
+  const { activeTab, setActiveTab, state, toggleTheme, toggleDemoData, openMigrationModal, syncStatus } = useLumina();
+  const { user, isAuthorized } = useAuth();
 
   const isDark = state.settings.theme === 'dark';
   const isDemo = state.settings.isDemoData;
@@ -250,22 +253,34 @@ export function Sidebar({
             </button>
           )}
 
-          {/* Status dos Dados Locais */}
+          {/* Status dos Dados e Sincronização */}
           {(!isCollapsed || mobileOpen) ? (
-            <div className="px-1 pt-1">
+            <div
+              onClick={openMigrationModal}
+              className="px-2 py-1.5 rounded-xl bg-slate-900/60 hover:bg-slate-800/80 border border-slate-800/80 transition-colors cursor-pointer group"
+              title="Clique para abrir Central de Sincronização e Migração"
+            >
               <div className="flex items-center gap-2 text-xs">
                 <span className="relative flex h-2 w-2">
                   <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                   <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
                 </span>
-                <span className="font-semibold text-white">Dados locais</span>
+                <span className="font-semibold text-white group-hover:text-[#E6C387] transition-colors">
+                  {user && isAuthorized ? 'Cloud Sync Ativo' : 'Dados Locais'}
+                </span>
               </div>
-              <p className="text-[11px] text-slate-400 pl-4 mt-0.5">
-                Salvos no navegador (IndexedDB)
+              <p className="text-[10px] text-slate-400 pl-4 mt-0.5">
+                {user && isAuthorized
+                  ? (syncStatus === 'syncing' ? 'Sincronizando Firestore...' : 'Firestore + IndexedDB')
+                  : 'Salvos no navegador (IndexedDB)'}
               </p>
             </div>
           ) : (
-            <div className="flex justify-center" title="Dados locais salvos no navegador (IndexedDB)">
+            <div
+              onClick={openMigrationModal}
+              className="flex justify-center cursor-pointer p-1 rounded-lg hover:bg-slate-800 transition-colors"
+              title={user && isAuthorized ? 'Cloud Sync Ativo (Firestore + IndexedDB)' : 'Dados locais (IndexedDB)'}
+            >
               <span className="relative flex h-2.5 w-2.5">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>

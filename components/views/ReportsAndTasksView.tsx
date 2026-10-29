@@ -22,6 +22,7 @@ import {
   Tag,
   User,
   BadgeDollarSign,
+  Cloud,
 } from 'lucide-react';
 import { TaskItem, LeadPriority } from '@/lib/types';
 import { formatBRL, formatDateBR, formatPercent } from '@/lib/formatters';
@@ -39,6 +40,7 @@ export function ReportsAndTasksView() {
     toggleDemoData,
     exportCsv,
     showToast,
+    openMigrationModal,
   } = useLumina();
 
   // Sub-tabs: 'tasks' | 'reports' | 'backup_settings'
@@ -452,11 +454,19 @@ export function ReportsAndTasksView() {
 
             <div className="flex flex-wrap items-center gap-3 pt-2">
               <button
+                onClick={openMigrationModal}
+                className="h-10 px-4 text-xs font-bold bg-[#C9A46B]/15 hover:bg-[#C9A46B]/25 text-[#E6C387] border border-[#C9A46B]/40 rounded-xl flex items-center gap-2 transition-colors cursor-pointer"
+              >
+                <Cloud className="w-4 h-4 text-[#C9A46B]" />
+                <span>Nuvem &amp; Migração (Cloud Firestore)</span>
+              </button>
+
+              <button
                 onClick={exportBackup}
                 className="h-10 px-4 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#18202E] dark:hover:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl flex items-center gap-2 transition-colors"
               >
                 <Download className="w-4 h-4 text-[#C9A46B]" />
-                <span>Exportar Backup Completo (JSON)</span>
+                <span>Exportar Backup (JSON)</span>
               </button>
 
               <label className="h-10 px-4 text-xs font-bold bg-slate-100 hover:bg-slate-200 dark:bg-[#18202E] dark:hover:bg-slate-800 text-slate-900 dark:text-white border border-slate-300 dark:border-slate-700 rounded-xl flex items-center gap-2 cursor-pointer transition-colors">

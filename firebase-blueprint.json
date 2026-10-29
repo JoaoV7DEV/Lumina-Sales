@@ -1,0 +1,196 @@
+{
+  "entities": {
+    "Account": {
+      "title": "Account",
+      "description": "Conta proprietária do Lumina Sales",
+      "type": "object",
+      "properties": {
+        "ownerUid": {
+          "type": "string",
+          "description": "Firebase Auth UID do proprietário"
+        },
+        "email": {
+          "type": "string",
+          "format": "email",
+          "description": "E-mail do proprietário"
+        },
+        "displayName": {
+          "type": "string",
+          "description": "Nome de exibição do proprietário"
+        },
+        "createdAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "Data de criação da conta"
+        },
+        "role": {
+          "type": "string",
+          "enum": ["owner", "admin"]
+        }
+      },
+      "required": ["ownerUid", "email", "createdAt"]
+    },
+    "Lead": {
+      "title": "Lead",
+      "description": "Lead ou contato comercial do Lumina Sales",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "niche": { "type": "string" },
+        "status": { "type": "string" },
+        "priority": { "type": "string" },
+        "whatsapp": { "type": "string" },
+        "instagram": { "type": "string" },
+        "source": { "type": "string" },
+        "notes": { "type": "string" },
+        "nextFollowUpDate": { "type": "string" },
+        "nextAction": { "type": "string" },
+        "packageInterestId": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" },
+        "ownerUid": { "type": "string" }
+      },
+      "required": ["id", "name", "niche", "status", "createdAt", "ownerUid"]
+    },
+    "Sale": {
+      "title": "Sale",
+      "description": "Registro de venda e faturamento comercial",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "leadId": { "type": "string" },
+        "serviceName": { "type": "string" },
+        "packageId": { "type": "string" },
+        "originalValue": { "type": "number" },
+        "finalValue": { "type": "number" },
+        "discount": { "type": "number" },
+        "status": { "type": "string" },
+        "closedDate": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "installmentsCount": { "type": "number" },
+        "notes": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "ownerUid": { "type": "string" }
+      },
+      "required": ["id", "leadId", "serviceName", "finalValue", "status", "closedDate", "ownerUid"]
+    },
+    "Task": {
+      "title": "Task",
+      "description": "Tarefa e retorno operacional",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "leadId": { "type": "string" },
+        "leadName": { "type": "string" },
+        "title": { "type": "string" },
+        "dueDate": { "type": "string" },
+        "priority": { "type": "string" },
+        "completed": { "type": "boolean" },
+        "notes": { "type": "string" },
+        "ownerUid": { "type": "string" }
+      },
+      "required": ["id", "title", "dueDate", "completed", "ownerUid"]
+    },
+    "Script": {
+      "title": "Script",
+      "description": "Roteiro ou script comercial",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "code": { "type": "string" },
+        "name": { "type": "string" },
+        "category": { "type": "string" },
+        "targetNiche": { "type": "string" },
+        "content": { "type": "string" },
+        "isCustom": { "type": "boolean" },
+        "updatedAt": { "type": "string" },
+        "ownerUid": { "type": "string" }
+      },
+      "required": ["id", "name", "category", "content", "ownerUid"]
+    },
+    "Creative": {
+      "title": "Creative",
+      "description": "Metadados de criativo visual comercial",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "niche": { "type": "string" },
+        "format": { "type": "string" },
+        "resultsCount": { "type": "number" },
+        "hasTitle": { "type": "boolean" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string" },
+        "ownerUid": { "type": "string" }
+      },
+      "required": ["id", "name", "niche", "ownerUid"]
+    },
+    "PackageOffer": {
+      "title": "PackageOffer",
+      "description": "Pacote e tabela de preços",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "table": { "type": "string" },
+        "photosCount": { "type": "number" },
+        "price": { "type": "number" },
+        "ownerUid": { "type": "string" }
+      },
+      "required": ["id", "name", "price", "ownerUid"]
+    },
+    "AppSettingsDoc": {
+      "title": "AppSettingsDoc",
+      "description": "Metas e configurações do aplicativo",
+      "type": "object",
+      "properties": {
+        "attendantName": { "type": "string" },
+        "defaultPriceTable": { "type": "string" },
+        "dailyGoal": { "type": "number" },
+        "dailyRevenueGoal": { "type": "number" },
+        "monthlyRevenueGoal": { "type": "number" },
+        "theme": { "type": "string" },
+        "timezone": { "type": "string" },
+        "sidebarCollapsed": { "type": "boolean" },
+        "updatedAt": { "type": "string" },
+        "ownerUid": { "type": "string" }
+      },
+      "required": ["dailyGoal", "ownerUid"]
+    }
+  },
+  "firestore": {
+    "/accounts/{ownerUid}": {
+      "schema": { "$ref": "Account" },
+      "description": "Informações e controle da conta autorizada"
+    },
+    "/accounts/{ownerUid}/environments/{envId}/leads/{leadId}": {
+      "schema": { "$ref": "Lead" },
+      "description": "Leads cadastrados por ambiente"
+    },
+    "/accounts/{ownerUid}/environments/{envId}/sales/{saleId}": {
+      "schema": { "$ref": "Sale" },
+      "description": "Vendas registradas por ambiente"
+    },
+    "/accounts/{ownerUid}/environments/{envId}/tasks/{taskId}": {
+      "schema": { "$ref": "Task" },
+      "description": "Tarefas e retornos agendados"
+    },
+    "/accounts/{ownerUid}/environments/{envId}/scripts/{scriptId}": {
+      "schema": { "$ref": "Script" },
+      "description": "Biblioteca de scripts comerciais"
+    },
+    "/accounts/{ownerUid}/environments/{envId}/creatives/{creativeId}": {
+      "schema": { "$ref": "Creative" },
+      "description": "Metadados de criativos"
+    },
+    "/accounts/{ownerUid}/environments/{envId}/packages/{packageId}": {
+      "schema": { "$ref": "PackageOffer" },
+      "description": "Pacotes e tabelas comerciais"
+    },
+    "/accounts/{ownerUid}/environments/{envId}/settings/{settingId}": {
+      "schema": { "$ref": "AppSettingsDoc" },
+      "description": "Configurações e metas ativas"
+    }
+  }
+}

@@ -1,0 +1,1020 @@
+# LUMINA SALES V1.4 — CLOUD SYNC & SECURE DATA MIGRATION
+
+## Google AI Studio | Firebase Authentication + Cloud Firestore + IndexedDB Migration + Vercel Compatibility
+
+### MISSÃO PRINCIPAL
+
+Atue como um arquiteto de software sênior, engenheiro full-stack especialista em React, TypeScript, Firebase, Cloud Firestore, autenticação, persistência de dados, migração de bancos de dados e aplicações SaaS.
+
+Sua missão é **atualizar o aplicativo Lumina Sales existente para a versão V1.4**, implementando autenticação segura e armazenamento centralizado em nuvem, com sincronização entre diferentes dispositivos.
+
+O aplicativo foi desenvolvido no Google AI Studio e sua versão web está publicada na Vercel.
+
+Atualmente, os dados são armazenados localmente no navegador utilizando IndexedDB.
+
+Essa arquitetura apresenta uma limitação importante: os registros cadastrados no computador não aparecem automaticamente quando o mesmo aplicativo é aberto no celular, tablet ou em outro navegador.
+
+Precisamos corrigir essa limitação de maneira profissional, segura, estável e econômica.
+
+**RESULTADO ESPERADO:**
+
+Eu quero cadastrar um lead no computador, abrir o Lumina Sales no celular com a mesma conta autorizada e encontrar esse lead com todas as informações atualizadas.
+
+Da mesma forma, alterações feitas no celular devem aparecer no computador após sincronização.
+
+Isso deve funcionar para metas, scripts, CRM, vendas, tarefas, configurações e demais registros operacionais.
+
+---
+
+# 1. REGRA ABSOLUTA — PRESERVAR O APLICATIVO EXISTENTE
+
+NÃO CRIE OUTRO APLICATIVO.
+
+NÃO RECONSTRUA O PROJETO DO ZERO.
+
+NÃO SUBSTITUA A INTERFACE ATUAL.
+
+NÃO APAGUE DADOS EXISTENTES.
+
+NÃO REINICIALIZE O INDEXEDDB.
+
+NÃO RECRIE OS MÓDULOS INTERNOS SEM NECESSIDADE.
+
+Trabalhe diretamente no código existente do Lumina Sales.
+
+Preservar:
+
+- Dashboard operacional.
+- Cadastro e lista de Leads.
+- CRM e suas etapas comerciais.
+- Central de Atendimento.
+- Biblioteca de Scripts.
+- Biblioteca de Criativos.
+- Testes A/B.
+- Vendas e Financeiro.
+- Relatórios.
+- Configurações.
+- Metas comerciais e financeiras.
+- Modo Claro e Escuro.
+- Base Real e Base Exemplo.
+- Histórico de atividades.
+- Tarefas, follow-ups e remarketing.
+- Identidade visual, layout e navegação.
+
+Modificações internas nos serviços de armazenamento e acesso aos dados são permitidas e necessárias.
+
+Entretanto, essas modificações não podem alterar indevidamente os comportamentos funcionais ou os registros existentes.
+
+**Esta atualização é exclusivamente de infraestrutura, segurança, persistência e sincronização.**
+
+A reformulação visual do Dashboard será realizada em uma atualização posterior.
+
+---
+
+# 2. INSPEÇÃO TÉCNICA OBRIGATÓRIA
+
+Antes de implementar, inspecione integralmente a arquitetura atual do projeto.
+
+Identifique:
+
+1. Framework e estrutura de componentes.
+2. Biblioteca de gerenciamento de estado.
+3. Serviços utilizados para salvar dados.
+4. Estrutura e versão do IndexedDB.
+5. Todas as object stores existentes.
+6. Formato das entidades e relacionamentos.
+7. Identificadores de registros.
+8. Lógica da Base Real e Base Exemplo.
+9. Formato de armazenamento das metas.
+10. Arquivos, imagens, Blobs ou Base64 armazenados localmente.
+11. Operações de criação, leitura, atualização e exclusão.
+12. Histórico e mecanismos de backup existentes.
+13. Configuração atual de build e publicação na Vercel.
+
+Não presumir nomes de tabelas, coleções ou arquivos.
+
+Não inventar entidades que não existam.
+
+Mapear a estrutura real antes de criar a solução.
+
+Produzir um diagnóstico técnico para fundamentar a implementação.
+
+---
+
+# 3. IMPLEMENTAR FIREBASE NO PROJETO EXISTENTE
+
+Utilizar a integração oficial disponível no Google AI Studio para adicionar:
+
+**Firebase Authentication**
+
+Responsável pela autenticação e identificação da conta autorizada.
+
+**Cloud Firestore**
+
+Responsável pelo armazenamento persistente e sincronização dos dados.
+
+Utilizar preferencialmente o SDK modular atual do Firebase compatível com a estrutura do projeto.
+
+Se o Google AI Studio disponibilizar o fluxo automático de integração Firebase, utilizá-lo.
+
+Se houver necessidade de configuração manual, apresentar exatamente quais ações precisam ser realizadas no Firebase Console.
+
+Não inventar credenciais, identificadores de projeto ou configurações ausentes.
+
+Não criar outro projeto Firebase desnecessariamente se já existir um projeto apropriado conectado.
+
+Antes de ativar novos serviços, verificar se eles exigem faturamento.
+
+**Não ativar serviços pagos nem migrar o projeto para um plano pago sem autorização expressa.**
+
+Priorizar soluções compatíveis com o plano gratuito.
+
+Selecionar a região do banco conscientemente, considerando latência, localização dos usuários e possíveis custos. Informar que essa decisão pode ser permanente.
+
+---
+
+# 4. AUTENTICAÇÃO SEGURA COM CONTA GOOGLE
+
+O Lumina Sales é uma plataforma administrativa privada.
+
+Inicialmente, será utilizado apenas pelo proprietário da Lumina Studio.
+
+Implementar autenticação através do:
+
+**Google Sign-In — Firebase Authentication.**
+
+### Tela de acesso
+
+Criar uma tela de login simples, seguindo a identidade visual existente.
+
+Elementos:
+
+- Símbolo da Lumina Sales.
+- Nome Lumina Sales.
+- Descrição curta: "Gestão Comercial e Operacional".
+- Botão "Entrar com Google".
+- Indicador de carregamento.
+- Mensagens claras em caso de erro.
+
+Não criar uma página visualmente complexa.
+
+Preservar os modos claro e escuro quando aplicável.
+
+### Segurança
+
+O login Google não deve permitir automaticamente que qualquer pessoa acesse o banco comercial.
+
+Implementar restrição de acesso por identidade autorizada.
+
+Utilizar o Firebase UID como identificador de segurança, e não apenas o endereço de e-mail exibido.
+
+Projetar uma configuração segura de proprietário único.
+
+Durante a configuração inicial, permitir identificar e autorizar o UID correto da conta proprietária por um procedimento controlado.
+
+Não criar uma regra que permita a qualquer usuário autenticado acessar os dados da Lumina Studio.
+
+O acesso aos dados deve ser negado por padrão até a configuração segura das permissões.
+
+### Sessão
+
+Após login:
+
+- Recuperar a sessão autenticada.
+- Carregar os dados vinculados à conta.
+- Exibir o aplicativo.
+- Manter sessão conforme as opções de persistência do Firebase.
+- Permitir sair da conta.
+
+Não utilizar uma senha fixa no código.
+
+Não armazenar credenciais privadas em variáveis públicas.
+
+### Mobile
+
+A autenticação deve funcionar em navegadores móveis.
+
+Considerar limitações de pop-ups e redirecionamentos em determinados navegadores.
+
+Utilizar a estratégia apropriada para hospedagem na Vercel, seguindo as recomendações atuais do Firebase.
+
+Não presumir que um login funcional no preview do AI Studio funcionará automaticamente em produção.
+
+---
+
+# 5. CRIAR UMA CAMADA CENTRALIZADA DE DADOS
+
+Atualmente, os componentes podem consultar ou modificar diretamente o IndexedDB.
+
+A nova arquitetura deve oferecer uma camada de acesso centralizada, responsável por:
+
+- Autenticação.
+- Consultas.
+- Criação.
+- Atualização.
+- Exclusão.
+- Sincronização.
+- Tratamento de erros.
+- Histórico de alterações.
+- Persistência.
+
+Priorizar reaproveitamento dos serviços existentes.
+
+Evitar espalhar chamadas diretas ao Firestore por dezenas de componentes.
+
+Criar serviços ou repositórios reutilizáveis conforme a arquitetura atual.
+
+### Fonte principal dos dados
+
+Após a migração validada:
+
+**Cloud Firestore será a fonte principal dos dados comerciais.**
+
+IndexedDB poderá continuar sendo utilizado temporariamente como fonte de recuperação dos dados antigos ou como apoio offline, desde que não existam dois bancos independentes competindo como fonte principal.
+
+Não implementar sincronização bidirecional manual complexa sem necessidade.
+
+Evitar duplicação de registros por gravações simultâneas em dois mecanismos.
+
+---
+
+# 6. MODELAGEM DO FIRESTORE
+
+Projetar um modelo coerente com os dados existentes.
+
+Preservar os IDs originais quando apropriado e garantir referências consistentes.
+
+Como ponto de partida, considerar coleções ou estruturas equivalentes para:
+
+- Leads.
+- Atendimentos e interações.
+- Etapas e histórico do CRM.
+- Scripts.
+- Criativos e metadados.
+- Experimentos A/B.
+- Vendas.
+- Pagamentos.
+- Despesas.
+- Pacotes.
+- Tarefas.
+- Follow-ups.
+- Remarketing.
+- Metas.
+- Configurações.
+- Histórico de atividades.
+
+A estrutura exata deve ser definida após a inspeção do aplicativo.
+
+### Organização
+
+Separar os dados por conta proprietária e ambiente.
+
+Uma estrutura possível seria:
+
+accounts/{ownerUid}/environments/real/...
+
+accounts/{ownerUid}/environments/demo/...
+
+A estrutura é apenas uma referência arquitetural.
+
+Adapte conforme o banco existente e as necessidades reais de consulta.
+
+### Base Real e Exemplo
+
+Manter separação rigorosa entre os ambientes.
+
+Um registro demonstrativo nunca deve aparecer na Base Real por engano.
+
+A troca entre modos deve alterar apenas o conjunto de dados consultado.
+
+Não reinicializar registros reais quando alternar para Exemplo.
+
+Se a Base Exemplo utilizar fixtures locais, preservar seu comportamento e isolar completamente os dados de produção.
+
+### Metadados
+
+Quando necessário, utilizar campos como:
+
+- createdAt.
+- updatedAt.
+- schemaVersion.
+- ownerUid.
+- sourceId.
+- version.
+
+Utilizar timestamps confiáveis do servidor para alterações sincronizadas.
+
+Preservar as datas originais dos registros importados.
+
+Não substituir o histórico antigo pela data da migração.
+
+---
+
+# 7. MIGRAÇÃO SEGURA DO INDEXEDDB PARA A NUVEM
+
+Esta é a etapa mais sensível da atualização.
+
+O navegador atual pode conter leads reais, scripts, vendas, observações e outros dados que não podem ser perdidos.
+
+Não executar uma migração destrutiva.
+
+## Fase A — Inventário
+
+Antes de importar, identificar todas as entidades existentes.
+
+Registrar a quantidade de:
+
+- Leads.
+- Atendimentos.
+- Scripts.
+- Criativos.
+- Testes A/B.
+- Vendas.
+- Pagamentos.
+- Tarefas.
+- Configurações.
+- Outros registros encontrados.
+
+Identificar arquivos e anexos armazenados como Blob, File, Base64 ou outros formatos.
+
+Não assumir que todos os registros são documentos JSON simples.
+
+## Fase B — Backup
+
+Preservar a funcionalidade de exportar backup existente.
+
+Criar ou adaptar, se necessário, uma opção de exportação completa antes de migrar.
+
+O backup deve conter os dados serializáveis necessários para recuperação.
+
+Se houver arquivos binários, criar tratamento próprio ou exportação separada.
+
+Não declarar que o backup inclui imagens se somente os metadados forem exportados.
+
+Garantir que dados relevantes não sejam silenciosamente omitidos.
+
+## Fase C — Pré-visualização
+
+Criar uma interface discreta:
+
+**"Migrar dados locais para a nuvem"**
+
+Exibir:
+
+- Quantidade de registros identificados.
+- Categorias de dados.
+- Conta Google de destino.
+- Dados que poderão ser migrados.
+- Eventuais incompatibilidades.
+- Arquivos que necessitam de tratamento separado.
+
+Não iniciar a importação automaticamente.
+
+Solicitar confirmação explícita antes de gravar dados no banco em nuvem.
+
+## Fase D — Importação
+
+Importar em lotes seguros, respeitando limites do Firestore.
+
+Preservar relacionamentos entre entidades.
+
+Não duplicar leads, pagamentos, tarefas ou vendas.
+
+Utilizar identificadores determinísticos ou mecanismos de deduplicação apropriados.
+
+Tornar a importação idempotente: uma nova execução não deve duplicar registros importados anteriormente.
+
+Não sobrescrever automaticamente registros em nuvem mais recentes.
+
+Se forem identificados conflitos, apresentar uma opção segura de resolução.
+
+## Fase E — Validação
+
+Ao concluir, comparar a base original com a base importada.
+
+Verificar:
+
+- Quantidade de registros.
+- IDs.
+- Relacionamentos.
+- Valores financeiros.
+- Datas.
+- Etapas do CRM.
+- Metas.
+- Scripts.
+- Observações.
+- Histórico.
+- Referências de criativos.
+
+Não considerar a migração concluída apenas porque a operação de importação retornou sucesso.
+
+Validar também a leitura dos dados no novo banco.
+
+## Fase F — Ativação
+
+Somente após validar a migração e obter confirmação do usuário, ativar o Firestore como fonte principal de dados.
+
+Manter os dados locais originais intactos durante a transição.
+
+Disponibilizar estratégia de recuperação caso a migração falhe.
+
+Não apagar automaticamente o IndexedDB após o sucesso.
+
+---
+
+# 8. ATENÇÃO AOS DADOS DE DIFERENTES NAVEGADORES
+
+Os dados locais do IndexedDB pertencem à origem do site e ao navegador.
+
+Por exemplo, a aplicação publicada na Vercel pode possuir registros diferentes daqueles existentes no preview do Google AI Studio.
+
+Não presumir que ambos os ambientes compartilhem o mesmo banco local.
+
+### Migração de múltiplas origens
+
+Se houver dados locais em mais de uma origem:
+
+- Permitir exportá-los separadamente.
+- Identificar a origem quando possível.
+- Permitir importar backups com segurança.
+- Detectar IDs duplicados.
+- Evitar sobrescrever registros mais recentes.
+- Evitar duplicar vendas e pagamentos.
+
+Não executar uma mesclagem silenciosa que possa comprometer informações financeiras.
+
+---
+
+# 9. SINCRONIZAÇÃO ENTRE DISPOSITIVOS
+
+Após a migração e autenticação:
+
+O mesmo usuário deverá acessar os dados autorizados em:
+
+- Computador.
+- Notebook.
+- Tablet.
+- Celular.
+- Navegadores diferentes.
+
+### Exemplo 1 — Cadastro de lead
+
+1. O usuário entra no computador.
+2. Cadastra um novo lead.
+3. Salva o registro.
+4. O Firestore confirma a gravação.
+5. O usuário abre o site no celular.
+6. Realiza login com a mesma conta autorizada.
+7. O lead aparece com seus dados atualizados.
+
+### Exemplo 2 — CRM
+
+1. O usuário atualiza a etapa comercial de um lead no celular.
+2. A alteração é gravada em nuvem.
+3. O computador recebe ou consulta a atualização.
+4. O lead aparece na etapa correta.
+
+### Exemplo 3 — Metas
+
+1. O usuário modifica a meta diária.
+2. Clica em "Salvar".
+3. A gravação é confirmada.
+4. A meta permanece após atualizar a página.
+5. O mesmo valor aparece em outro dispositivo.
+
+### Exemplo 4 — Scripts
+
+1. O usuário edita permanentemente um script.
+2. Confirma o salvamento.
+3. A nova versão é gravada.
+4. O script atualizado fica disponível nos demais dispositivos.
+
+Preservar a distinção entre edição temporária para um atendimento e alteração permanente da biblioteca de scripts.
+
+---
+
+# 10. ATUALIZAÇÕES EM TEMPO REAL
+
+Utilizar mecanismos de atualização do Firestore quando fizer sentido operacional.
+
+Entretanto, não criar listeners ilimitados para todas as coleções.
+
+Priorizar:
+
+- Leads atualmente consultados.
+- Etapas relevantes do CRM.
+- Tarefas pendentes.
+- Registros necessários para o Dashboard.
+- Metas e configurações ativas.
+
+Desativar listeners quando componentes forem desmontados.
+
+Evitar consultas repetidas desnecessárias.
+
+Usar paginação ou carregamento sob demanda para históricos e listas grandes.
+
+Evitar recalcular todo o banco a cada pequena alteração quando uma estratégia incremental ou consulta otimizada for suficiente.
+
+O objetivo é manter o sistema rápido e econômico.
+
+---
+
+# 11. FUNCIONAMENTO OFFLINE
+
+O aplicativo poderá ser aberto em situações com conexão instável.
+
+Implementar um comportamento de conectividade claro.
+
+### Estados
+
+- Online e sincronizado.
+- Sincronizando.
+- Offline.
+- Alterações pendentes.
+- Erro de sincronização.
+
+Não apresentar "Salvo" se a alteração ainda não tiver sido confirmada pelo servidor.
+
+### Estratégia inicial
+
+Priorizar segurança e confiabilidade.
+
+Se for habilitada persistência offline do Firestore, usar a API atual recomendada e testar os navegadores suportados.
+
+Considerar que registros comerciais contêm informações pessoais.
+
+Em dispositivos não confiáveis ou compartilhados, evitar persistência offline de dados sensíveis sem consentimento.
+
+Se uma edição offline não puder ser sincronizada com segurança, informar claramente a limitação, preservando os dados já existentes.
+
+Não implementar uma fila paralela de gravações conflitante com o mecanismo oficial de sincronização.
+
+### Conflitos
+
+Considerar alterações feitas em dois dispositivos no mesmo registro.
+
+Evitar sobrescrever silenciosamente mudanças importantes.
+
+Para campos sensíveis, como pagamentos, valores e exclusões, adotar controle de versão, transações ou mecanismo apropriado de resolução.
+
+Não utilizar apenas a última gravação como regra universal para todos os dados.
+
+---
+
+# 12. SEGURANÇA DO BANCO DE DADOS
+
+Implementar e configurar Firestore Security Rules.
+
+Requisitos:
+
+- Negar acessos não autorizados por padrão.
+- Exigir autenticação.
+- Restringir acesso à conta proprietária.
+- Validar a identidade utilizando Firebase Auth UID.
+- Impedir leitura de registros privados por terceiros.
+- Impedir alteração de dados pertencentes a outras contas.
+- Proteger operações sensíveis.
+- Evitar regras abertas em produção.
+
+Não utilizar:
+
+allow read, write: if true;
+
+Não considerar suficiente uma regra que libera todos os registros a qualquer pessoa autenticada.
+
+### Credenciais
+
+A configuração pública do Firebase Web SDK poderá ser utilizada conforme a documentação oficial.
+
+Entretanto, credenciais administrativas, private keys, tokens privilegiados e service account credentials nunca devem ser incluídos no frontend.
+
+Se houver operações administrativas, executá-las em ambiente seguro e com autorização apropriada.
+
+Não registrar informações pessoais completas em logs desnecessários.
+
+### Dados pessoais
+
+O Lumina Sales armazena informações como:
+
+- Nomes.
+- Telefones.
+- Perfis do Instagram.
+- Observações comerciais.
+- Histórico de atendimento.
+- Informações financeiras.
+
+Aplicar controles de acesso compatíveis com a sensibilidade desses dados e princípios de minimização e proteção da LGPD.
+
+---
+
+# 13. SINCRONIZAÇÃO DE SCRIPTS E CRIATIVOS
+
+### Scripts
+
+Sincronizar:
+
+- Conteúdo.
+- Categoria.
+- Nicho vinculado.
+- Variações.
+- Ordem, quando aplicável.
+- Histórico de alterações, se disponível.
+- Identificadores.
+- Datas.
+
+Preservar integralmente os textos originais.
+
+Não reescrever mensagens.
+
+Não reformular scripts.
+
+Não eliminar variantes.
+
+### Criativos
+
+Inspecionar como a biblioteca atual armazena as imagens.
+
+Distinguir:
+
+1. Arquivos embutidos no projeto.
+2. URLs externas.
+3. Metadados.
+4. Arquivos armazenados no IndexedDB.
+5. Imagens convertidas em Base64.
+6. Blobs e outros binários.
+
+Sincronizar os metadados compatíveis com Firestore.
+
+Não armazenar imagens grandes diretamente em documentos Firestore.
+
+Se a sincronização dos arquivos exigir Cloud Storage for Firebase ou outro serviço pago, NÃO ativar sem autorização.
+
+Não substituir imagens existentes por URLs inválidas.
+
+Não apagar arquivos locais.
+
+Se os binários não puderem ser sincronizados gratuitamente nesta fase, preservar sua disponibilidade local e exibir claramente a limitação no relatório.
+
+Não afirmar que a galeria inteira está sincronizada se os arquivos físicos ainda estiverem disponíveis apenas no navegador original.
+
+---
+
+# 14. COMPATIBILIDADE COM A VERCEL
+
+O Lumina Sales já possui uma versão publicada na Vercel.
+
+Preservar a capacidade de implantação na plataforma atual.
+
+Não migrar automaticamente a hospedagem para Firebase Hosting ou Cloud Run.
+
+Inspecionar a configuração real de build.
+
+Adaptar as variáveis de ambiente à estrutura do projeto, como Vite, Next.js ou outra ferramenta identificada.
+
+### Configuração
+
+Garantir que a implantação final utilize:
+
+- Projeto Firebase correto.
+- Configuração Web SDK correta.
+- Banco Firestore correto.
+- Firebase Authentication.
+- Regras de segurança publicadas.
+- Domínio autorizado para autenticação.
+- Ambiente apropriado para produção.
+
+Não inventar variáveis nem valores de configuração.
+
+### Autenticação
+
+Configurar corretamente o login Google para o domínio publicado na Vercel.
+
+Considerar limitações atuais de autenticação por redirecionamento em navegadores que restringem cookies de terceiros.
+
+Testar login no desktop e no navegador mobile.
+
+### Publicação
+
+Não apagar o projeto atual da Vercel.
+
+Não alterar o endereço público desnecessariamente.
+
+Não publicar uma versão potencialmente destrutiva sem testes.
+
+Após validar o código, fornecer instruções precisas para atualizar a implantação existente.
+
+Se o agente não tiver permissão para modificar configurações externas, explicar as etapas manuais necessárias.
+
+---
+
+# 15. BACKUP E RECUPERAÇÃO
+
+Preservar o sistema de backup já existente.
+
+Após a migração, adaptar o backup para permitir exportação dos dados do Firestore autorizados ao proprietário.
+
+### Recursos
+
+- Exportar backup completo dos registros em formato apropriado.
+- Registrar data e versão do backup.
+- Incluir versão do esquema.
+- Permitir validar um arquivo antes de restaurar.
+- Evitar importações duplicadas.
+- Exigir confirmação antes de operações de restauração.
+- Não apagar dados automaticamente.
+
+Arquivos binários devem receber tratamento separado quando necessário.
+
+A rotina de backup não deve depender exclusivamente do cache do navegador.
+
+Não afirmar que há backups automáticos em nuvem se essa funcionalidade não estiver efetivamente configurada.
+
+Priorizar exportação manual confiável nesta fase.
+
+---
+
+# 16. INDICADOR DISCRETO DE SINCRONIZAÇÃO
+
+Adicionar um indicador pequeno e funcional na interface.
+
+Não redesenhar todo o cabeçalho.
+
+Sugestões de estados:
+
+- Sincronizado.
+- Sincronizando...
+- Sem conexão.
+- Erro ao salvar.
+
+Utilizar ícones discretos e cores semânticas.
+
+### Desktop
+
+O indicador pode ficar no cabeçalho ou na área inferior da sidebar.
+
+### Mobile
+
+Manter uma indicação acessível sem ocupar espaço excessivo.
+
+Uma alternativa é mostrar o estado completo dentro do menu lateral e apenas um pequeno ícone no cabeçalho quando necessário.
+
+### Mensagens
+
+Usar português brasileiro.
+
+Exemplos:
+
+"Alterações salvas na nuvem."
+
+"Sincronizando informações..."
+
+"Sem conexão. Algumas alterações podem estar pendentes."
+
+"Não foi possível confirmar o salvamento. Tente novamente."
+
+Não mostrar mensagens de sucesso falsas.
+
+---
+
+# 17. PERFORMANCE E CONTROLE DE CUSTOS
+
+O projeto ainda está em fase inicial de operação comercial.
+
+Priorizar uma arquitetura econômica.
+
+Recomendações:
+
+- Consultas paginadas.
+- Listeners apenas quando necessários.
+- Evitar múltiplas consultas idênticas.
+- Evitar sincronizar arquivos grandes como documentos.
+- Evitar escritas repetitivas a cada renderização.
+- Agrupar operações quando apropriado.
+- Não duplicar registros.
+- Não criar serviços pagos sem necessidade.
+
+Não adicionar serviços de inteligência artificial externos.
+
+Não implementar envio automático de WhatsApp.
+
+Não implementar disparos em massa.
+
+Não adicionar funcionalidades comerciais novas.
+
+Este projeto de atualização deve permanecer focado em sincronização e segurança.
+
+---
+
+# 18. TESTES OBRIGATÓRIOS
+
+Testar com registros demonstrativos, sem comprometer dados reais.
+
+## Teste 1 — Login
+
+- Login autorizado.
+- Logout.
+- Recuperação de sessão.
+- Usuário não autorizado.
+- Acesso direto a rotas protegidas.
+- Permissões do Firestore.
+
+## Teste 2 — Cadastro
+
+- Criar lead.
+- Atualizar página.
+- Confirmar persistência.
+- Abrir em outro dispositivo.
+- Confirmar sincronização.
+
+## Teste 3 — CRM
+
+- Alterar etapa.
+- Reabrir aplicativo.
+- Verificar etapa.
+- Consultar em outro navegador.
+
+## Teste 4 — Metas
+
+- Alterar as três metas.
+- Salvar.
+- Atualizar.
+- Alternar tema.
+- Alternar base.
+- Retornar à base anterior.
+- Verificar valores.
+
+## Teste 5 — Scripts
+
+- Editar um script.
+- Salvar permanentemente.
+- Abrir em outro dispositivo.
+- Confirmar texto atualizado.
+- Descartar edição não salva.
+- Confirmar que o original permaneceu intacto.
+
+## Teste 6 — Financeiro
+
+- Criar venda demonstrativa.
+- Registrar pagamento parcial.
+- Conferir saldo.
+- Abrir em outro dispositivo.
+- Verificar consistência dos valores.
+- Repetir operações sem gerar duplicidades.
+
+## Teste 7 — Migração
+
+- Inventariar IndexedDB.
+- Exportar backup.
+- Executar importação de teste.
+- Verificar quantidades.
+- Reexecutar importação.
+- Confirmar ausência de duplicações.
+- Validar relacionamentos.
+
+## Teste 8 — Segurança
+
+- Usuário não autenticado não acessa dados privados.
+- Conta não autorizada não acessa a base da Lumina.
+- Operações permitidas funcionam.
+- Operações negadas retornam erros compreensíveis.
+
+## Teste 9 — Vercel
+
+Verificar o aplicativo publicado:
+
+- Chrome desktop.
+- Chrome Android.
+- Safari iPhone, quando disponível.
+- Outro navegador desktop, quando disponível.
+
+Não declarar testes reais em dispositivos que não foram utilizados.
+
+## Teste 10 — Sincronização concorrente
+
+Simular alterações em dois clientes.
+
+Verificar conflitos, confirmação de gravação e consistência de dados.
+
+O objetivo é impedir perda silenciosa de atualizações importantes.
+
+---
+
+# 19. CRITÉRIOS DE ACEITAÇÃO
+
+Considerar a atualização concluída apenas quando:
+
+1. O login Google estiver funcionando.
+2. As regras de segurança estiverem corretamente configuradas.
+3. Os dados reais permanecerem protegidos.
+4. O Firestore estiver integrado ao aplicativo.
+5. Os registros existentes puderem ser migrados com segurança.
+6. As novas alterações forem persistidas no banco em nuvem.
+7. O mesmo usuário autorizado puder consultar os dados em dispositivos diferentes.
+8. A Base Real estiver separada da Base Exemplo.
+9. Os scripts permanecerem intactos.
+10. Os dados financeiros mantiverem consistência.
+11. As metas permanecerem salvas.
+12. Não houver duplicação indevida.
+13. O aplicativo continuar compatível com Vercel.
+14. O dashboard e as demais páginas continuarem funcionais.
+15. Os limites e eventuais pendências de sincronização de imagens forem apresentados com transparência.
+
+Se alguma etapa depender de configuração externa ou aprovação do usuário, informar claramente que ela está pendente.
+
+Não declarar sincronização completa antes da validação no aplicativo publicado.
+
+---
+
+# 20. ORDEM DE IMPLEMENTAÇÃO
+
+Executar na sequência:
+
+**FASE 1 — Inspeção e backup**
+
+Auditar IndexedDB, estrutura de dados, arquivos, relacionamentos e build.
+
+**FASE 2 — Firebase**
+
+Configurar integração, autenticação e Firestore com regras seguras.
+
+**FASE 3 — Arquitetura de dados**
+
+Criar camada de persistência centralizada e adaptar os serviços existentes.
+
+**FASE 4 — Migração**
+
+Preparar inventário, exportação, importação controlada, deduplicação e validação.
+
+**FASE 5 — Sincronização**
+
+Implementar leitura e gravação dos dados em nuvem, atualização entre dispositivos e tratamento de erros.
+
+**FASE 6 — Compatibilidade**
+
+Validar Base Real, Base Exemplo, metas, scripts, CRM e Financeiro.
+
+**FASE 7 — Vercel**
+
+Verificar configurações de produção, autenticação e processo de deploy.
+
+**FASE 8 — Testes finais**
+
+Executar verificações de segurança, persistência, integridade e sincronização.
+
+Não remover a possibilidade de recuperação local antes de validar a migração.
+
+---
+
+# 21. RELATÓRIO FINAL OBRIGATÓRIO
+
+Após implementar, apresentar:
+
+1. Resumo do que foi feito.
+2. Estrutura Firebase utilizada.
+3. Estado real da autenticação.
+4. Coleções e dados sincronizados.
+5. Estratégia de migração aplicada.
+6. Como importar dados antigos.
+7. Como utilizar a mesma conta em vários dispositivos.
+8. Configurações necessárias no Firebase Console.
+9. Configurações necessárias na Vercel.
+10. Testes executados e resultados.
+11. Recursos que ainda não estão sincronizados.
+12. Possíveis custos e limitações do plano gratuito.
+13. Estratégia de backup e recuperação.
+14. Confirmação sobre preservação dos registros anteriores.
+
+Diferenciar claramente:
+
+- Implementado e testado.
+- Implementado, mas não validado.
+- Pendente de configuração.
+- Não implementado.
+
+Não inventar resultados de testes.
+
+---
+
+# INSTRUÇÃO FINAL — PRIORIDADE ABSOLUTA
+
+Transformar o Lumina Sales em uma plataforma comercial privada, segura e sincronizada entre dispositivos.
+
+**NÃO RECONSTRUIR. EVOLUIR.**
+
+**NÃO APAGAR. MIGRAR COM SEGURANÇA.**
+
+**NÃO DUPLICAR. CENTRALIZAR.**
+
+**NÃO ATIVAR SERVIÇOS PAGOS SEM AUTORIZAÇÃO.**
+
+**NÃO ALTERAR A IDENTIDADE VISUAL.**
+
+**NÃO MODIFICAR DESNECESSARIAMENTE O FUNCIONAMENTO COMERCIAL.**
+
+O objetivo é que a Lumina Sales tenha uma base tecnológica confiável para registrar dezenas de novos contatos diariamente, acompanhar negociações, manter seus scripts e visualizar resultados em qualquer dispositivo autorizado.
+
+Execute as alterações necessárias no projeto existente, com preservação de dados, testes e documentação.
+
+Quando uma etapa exigir intervenção ou aprovação externa, apresente instruções precisas, mantendo o sistema íntegro até sua conclusão.
+
+**ENTREGA ESPERADA: LUMINA SALES V1.4 — CLOUD SYNC, SECURE AUTHENTICATION & DATA PERSISTENCE.**

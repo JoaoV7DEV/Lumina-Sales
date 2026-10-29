@@ -30,6 +30,23 @@ import {
 } from '@/lib/storage';
 import { INITIAL_DATABASE_STATE, OFFICIAL_NICHES } from '@/lib/seed-data';
 import { cleanDigits, normalizeInstagramHandle } from '@/lib/formatters';
+import {
+  SyncStatus,
+  loadEnvironmentStateFromCloud,
+  subscribeToCloudChanges,
+  saveLeadToCloud,
+  deleteLeadFromCloud,
+  saveSaleToCloud,
+  saveTaskToCloud,
+  deleteTaskFromCloud,
+  saveSettingsToCloud,
+  saveScriptToCloud,
+  deleteScriptFromCloud,
+  savePackageToCloud,
+  saveCreativeToCloud,
+  deleteCreativeFromCloud,
+} from '@/lib/firestoreService';
+import { useAuth } from '@/context/AuthContext';
 
 interface LuminaContextType {
   state: DatabaseState;
@@ -124,6 +141,12 @@ interface LuminaContextType {
   exportBackup: () => void;
   importBackup: (file: File) => Promise<void>;
   exportCsv: () => void;
+  // Cloud Sync & Migration
+  syncStatus: SyncStatus;
+  isMigrationModalOpen: boolean;
+  openMigrationModal: () => void;
+  closeMigrationModal: () => void;
+  refreshCloudSync: () => Promise<void>;
 }
 
 const LuminaContext = createContext<LuminaContextType | undefined>(undefined);
@@ -137,18 +160,61 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
   const [isSearchOpen, setIsSearchOpen] = useState(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Timer state
-  const [timerActive, setTimerActive] = useState(false);
-  const [timerSeconds, setTimerSeconds] = useState(0);
-  const [timerSessionApproaches, setTimerSessionApproaches] = useState(0);
-  const [timerSessionQualified, setTimerSessionQualified] = useState(0);
-
   const showToast = useCallback((msg: string) => {
     setToastMessage(msg);
     setTimeout(() => {
       setToastMessage((current) => (current === msg ? null : current));
     }, 3500);
   }, []);
+
+  // Timer state
+  const [timerActive, setTimerActive] = useState(false);
+  const [timerSeconds, setTimerSeconds] = useState(0);
+  const [timerSessionApproaches, setTimerSessionApproaches] = useState(0);
+  const [timerSessionQualified, setTimerSessionQualified] = useState(0);
+
+  // Cloud Sync & Autenticação
+  const { user, isAuthorized } = useAuth();
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('synced');
+  const [isMigrationModalOpen, setIsMigrationModalOpen] = useState(false);
+
+  const openMigrationModal = useCallback(() => setIsMigrationModalOpen(true), []);
+  const closeMigrationModal = useCallback(() => setIsMigrationModalOpen(false), []);
+
+  const syncToCloud = useCallback(
+    async (fn: (uid: string, env: 'real' | 'demo') => Promise<void>) => {
+      if (!user || !isAuthorized) return;
+      const env = state.settings.isDemoData ? 'demo' : 'real';
+      setSyncStatus('syncing');
+      try {
+        await fn(user.uid, env);
+        setSyncStatus('synced');
+      } catch (err) {
+        console.warn('Falha na sincronização em nuvem:', err);
+        setSyncStatus('offline');
+      }
+    },
+    [user, isAuthorized, state.settings.isDemoData]
+  );
+
+  const refreshCloudSync = useCallback(async () => {
+    if (!user || !isAuthorized) return;
+    setSyncStatus('syncing');
+    const env = state.settings.isDemoData ? 'demo' : 'real';
+    try {
+      const cloudState = await loadEnvironmentStateFromCloud(user.uid, env);
+      if (cloudState) {
+        setState(cloudState);
+        await saveDatabaseState(cloudState);
+        showToast('Dados atualizados da nuvem!');
+      }
+      setSyncStatus('synced');
+    } catch (err: any) {
+      console.warn('Erro ao atualizar da nuvem:', err);
+      setSyncStatus('offline');
+      showToast('Modo offline: operando com dados locais.');
+    }
+  }, [user, isAuthorized, state.settings.isDemoData, showToast]);
 
   // Timer tick
   useEffect(() => {
@@ -163,7 +229,7 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
     };
   }, [timerActive]);
 
-  // Carregar dados na inicialização
+  // Carregar dados locais na inicialização
   useEffect(() => {
     async function init() {
       try {
@@ -177,6 +243,82 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
     }
     init();
   }, []);
+
+  // Sincronização em tempo real e escuta de alterações do Cloud Firestore
+  useEffect(() => {
+    if (!user || !isAuthorized) return;
+
+    let isSubscribed = true;
+    const env = state.settings.isDemoData ? 'demo' : 'real';
+
+    async function initCloudSync() {
+      setSyncStatus('syncing');
+      try {
+        const cloudState = await loadEnvironmentStateFromCloud(user!.uid, env);
+        if (cloudState && isSubscribed) {
+          // Se a nuvem já possui dados gravados, ela é a fonte prioritária
+          setState(cloudState);
+          await saveDatabaseState(cloudState);
+          setSyncStatus('synced');
+        } else if (isSubscribed) {
+          // Nuvem ainda sem registros gravados nesta conta
+          setSyncStatus('synced');
+        }
+      } catch (err) {
+        console.warn('Aviso: Firestore offline ou não inicializado:', err);
+        setSyncStatus('offline');
+      }
+    }
+
+    initCloudSync();
+
+    const unsubscribe = subscribeToCloudChanges(user.uid, env, {
+      onLeadsChange: (cloudLeads) => {
+        if (!isSubscribed) return;
+        setState((prev) => {
+          const updated = { ...prev, leads: cloudLeads };
+          saveDatabaseState(updated);
+          return updated;
+        });
+      },
+      onSalesChange: (cloudSales) => {
+        if (!isSubscribed) return;
+        setState((prev) => {
+          const updated = { ...prev, sales: cloudSales };
+          saveDatabaseState(updated);
+          return updated;
+        });
+      },
+      onTasksChange: (cloudTasks) => {
+        if (!isSubscribed) return;
+        setState((prev) => {
+          const updated = { ...prev, tasks: cloudTasks };
+          saveDatabaseState(updated);
+          return updated;
+        });
+      },
+      onSettingsChange: (cloudSettings) => {
+        if (!isSubscribed) return;
+        setState((prev) => {
+          const updated = {
+            ...prev,
+            settings: { ...prev.settings, ...cloudSettings },
+          };
+          saveDatabaseState(updated);
+          return updated;
+        });
+      },
+      onError: (err) => {
+        console.warn('Falha na escuta do Firestore:', err);
+        setSyncStatus('offline');
+      },
+    });
+
+    return () => {
+      isSubscribed = false;
+      unsubscribe();
+    };
+  }, [user, isAuthorized, state.settings.isDemoData]);
 
   // Sincronizar tema no HTML (modo escuro e modo claro)
   useEffect(() => {
@@ -364,11 +506,15 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
         return updated;
       });
 
+      syncToCloud(async (uid, env) => {
+        await saveLeadToCloud(uid, env, newLead);
+      });
+
       incrementSessionQualified();
       showToast(`Lead "${newLead.name}" cadastrado com sucesso!`);
       return newLead;
     },
-    [incrementSessionQualified, showToast]
+    [incrementSessionQualified, showToast, syncToCloud]
   );
 
   // Cadastro Rápido de Leads
@@ -411,11 +557,15 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           leads: prev.leads.map((l) => (l.id === id ? { ...l, ...updates, updatedAt: new Date().toISOString() } : l)),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const lead = updated.leads.find((l) => l.id === id);
+          if (lead) await saveLeadToCloud(uid, env, lead);
+        });
         return updated;
       });
       showToast('Lead atualizado');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const deleteLead = useCallback(
@@ -427,11 +577,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           leads: prev.leads.filter((l) => l.id !== id),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          await deleteLeadFromCloud(uid, env, id);
+        });
         showToast(`Lead "${lead?.name || id}" excluído`);
         return updated;
       });
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const addTimelineEvent = useCallback(
@@ -455,10 +608,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           ),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const lead = updated.leads.find((l) => l.id === leadId);
+          if (lead) await saveLeadToCloud(uid, env, lead);
+        });
         return updated;
       });
     },
-    []
+    [syncToCloud]
   );
 
   const updateLeadStatus = useCallback(
@@ -489,11 +646,15 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           ),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const updatedLead = updated.leads.find((l) => l.id === id);
+          if (updatedLead) await saveLeadToCloud(uid, env, updatedLead);
+        });
         return updated;
       });
       showToast(`Status atualizado`);
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const confirmApproach = useCallback(
@@ -527,13 +688,17 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           ),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const updatedLead = updated.leads.find((l) => l.id === leadId);
+          if (updatedLead) await saveLeadToCloud(uid, env, updatedLead);
+        });
         return updated;
       });
 
       incrementSessionApproach();
       showToast('Abordagem confirmada e salva no histórico!');
     },
-    [incrementSessionApproach, showToast]
+    [incrementSessionApproach, showToast, syncToCloud]
   );
 
   const recordResponse = useCallback(
@@ -560,11 +725,15 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           ),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const updatedLead = updated.leads.find((l) => l.id === leadId);
+          if (updatedLead) await saveLeadToCloud(uid, env, updatedLead);
+        });
         return updated;
       });
       showToast('Resposta registrada no histórico!');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const markInterested = useCallback(
@@ -592,11 +761,15 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           ),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const updatedLead = updated.leads.find((l) => l.id === leadId);
+          if (updatedLead) await saveLeadToCloud(uid, env, updatedLead);
+        });
         return updated;
       });
       showToast('Lead marcado como Interessado!');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const scheduleFollowUp = useCallback(
@@ -637,11 +810,16 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           tasks: [newTask, ...prev.tasks],
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const updatedLead = updated.leads.find((l) => l.id === leadId);
+          if (updatedLead) await saveLeadToCloud(uid, env, updatedLead);
+          await saveTaskToCloud(uid, env, newTask);
+        });
         return updated;
       });
       showToast('Acompanhamento agendado e tarefa criada!');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   // Vendas e Pagamentos
@@ -677,11 +855,16 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           ),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          await saveSaleToCloud(uid, env, newSale);
+          const lead = updated.leads.find((l) => l.id === saleData.leadId);
+          if (lead) await saveLeadToCloud(uid, env, lead);
+        });
         return updated;
       });
       showToast('Venda registrada com sucesso!');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const updateSale = useCallback(
@@ -692,11 +875,15 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           sales: prev.sales.map((s) => (s.id === id ? { ...s, ...updates } : s)),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const sale = updated.sales.find((s) => s.id === id);
+          if (sale) await saveSaleToCloud(uid, env, sale);
+        });
         return updated;
       });
       showToast('Registro de venda atualizado');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const addPaymentToSale = useCallback(
@@ -734,11 +921,19 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           leads: updatedLeads,
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const updatedSale = updated.sales.find((s) => s.id === saleId);
+          if (updatedSale) await saveSaleToCloud(uid, env, updatedSale);
+          if (isFullyPaid) {
+            const lead = updated.leads.find((l) => l.id === sale.leadId);
+            if (lead) await saveLeadToCloud(uid, env, lead);
+          }
+        });
         return updated;
       });
       showToast('Pagamento registrado no caixa!');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const addExpense = useCallback(
@@ -789,11 +984,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           scripts: [newScript, ...prev.scripts],
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          await saveScriptToCloud(uid, env, newScript);
+        });
         return updated;
       });
       showToast('Novo script cadastrado na biblioteca!');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const updateScript = useCallback(
@@ -804,11 +1002,15 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           scripts: prev.scripts.map((s) => (s.id === id ? { ...s, ...updates, updatedAt: new Date().toISOString() } : s)),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const script = updated.scripts.find((s) => s.id === id);
+          if (script) await saveScriptToCloud(uid, env, script);
+        });
         return updated;
       });
       showToast('Script atualizado');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const deleteScript = useCallback(
@@ -819,11 +1021,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           scripts: prev.scripts.filter((s) => s.id !== id),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          await deleteScriptFromCloud(uid, env, id);
+        });
         return updated;
       });
       showToast('Script removido');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   // Criativos e Upload de Imagens
@@ -840,11 +1045,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           creatives: [newCreative, ...prev.creatives],
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          await saveCreativeToCloud(uid, env, newCreative);
+        });
         return updated;
       });
       showToast('Criativo cadastrado!');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const uploadCreativeImage = useCallback(
@@ -886,6 +1094,9 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
               creatives: [newCreative, ...prev.creatives],
             };
             saveDatabaseState(updated);
+            syncToCloud(async (uid, env) => {
+              await saveCreativeToCloud(uid, env, newCreative);
+            });
             return updated;
           });
 
@@ -899,7 +1110,7 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
         reader.readAsDataURL(file);
       });
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const updateCreative = useCallback(
@@ -910,11 +1121,15 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           creatives: prev.creatives.map((c) => (c.id === id ? { ...c, ...updates } : c)),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const creative = updated.creatives.find((c) => c.id === id);
+          if (creative) await saveCreativeToCloud(uid, env, creative);
+        });
         return updated;
       });
       showToast('Criativo atualizado');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const deleteCreative = useCallback(
@@ -925,11 +1140,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           creatives: prev.creatives.filter((c) => c.id !== id),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          await deleteCreativeFromCloud(uid, env, id);
+        });
         return updated;
       });
       showToast('Criativo excluído');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   // Pacotes e Experimentos
@@ -945,11 +1163,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           packages: [...prev.packages, newPkg],
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          await savePackageToCloud(uid, env, newPkg);
+        });
         return updated;
       });
       showToast('Pacote comercial adicionado');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const updatePackage = useCallback(
@@ -960,11 +1181,15 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           packages: prev.packages.map((p) => (p.id === id ? { ...p, ...updates } : p)),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const pkg = updated.packages.find((p) => p.id === id);
+          if (pkg) await savePackageToCloud(uid, env, pkg);
+        });
         return updated;
       });
       showToast('Pacote atualizado');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const addExperiment = useCallback(
@@ -1035,11 +1260,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           tasks: [newTask, ...prev.tasks],
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          await saveTaskToCloud(uid, env, newTask);
+        });
         return updated;
       });
       showToast('Tarefa criada');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const toggleTask = useCallback(
@@ -1050,10 +1278,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           tasks: prev.tasks.map((t) => (t.id === id ? { ...t, completed: !t.completed } : t)),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          const task = updated.tasks.find((t) => t.id === id);
+          if (task) await saveTaskToCloud(uid, env, task);
+        });
         return updated;
       });
     },
-    []
+    [syncToCloud]
   );
 
   const deleteTask = useCallback(
@@ -1064,11 +1296,14 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
           tasks: prev.tasks.filter((t) => t.id !== id),
         };
         saveDatabaseState(updated);
+        syncToCloud(async (uid, env) => {
+          await deleteTaskFromCloud(uid, env, id);
+        });
         return updated;
       });
       showToast('Tarefa removida');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   // Configurações & Utilitários
@@ -1089,9 +1324,12 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
       if (updatedState) {
         await saveDatabaseState(updatedState);
       }
+      syncToCloud(async (uid, env) => {
+        await saveSettingsToCloud(uid, env, settings);
+      });
       showToast('Configurações salvas!');
     },
-    [showToast]
+    [showToast, syncToCloud]
   );
 
   const toggleDemoData = useCallback(async () => {
@@ -1199,6 +1437,11 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
       exportBackup,
       importBackup,
       exportCsv,
+      syncStatus,
+      isMigrationModalOpen,
+      openMigrationModal,
+      closeMigrationModal,
+      refreshCloudSync,
     }),
     [
       state,
@@ -1260,6 +1503,11 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
       exportBackup,
       importBackup,
       exportCsv,
+      syncStatus,
+      isMigrationModalOpen,
+      openMigrationModal,
+      closeMigrationModal,
+      refreshCloudSync,
     ]
   );
 

@@ -2,6 +2,9 @@
 
 import React, { useState } from 'react';
 import { LuminaProvider, useLumina } from '@/context/LuminaContext';
+import { AuthProvider, useAuth } from '@/context/AuthContext';
+import { AuthLoginPage } from '@/components/AuthLoginPage';
+import { CloudMigrationModal } from '@/components/CloudMigrationModal';
 import { Sidebar } from '@/components/Sidebar';
 import { TopHeader } from '@/components/TopHeader';
 import { GlobalSearchModal } from '@/components/GlobalSearchModal';
@@ -17,8 +20,40 @@ import { ReportsAndTasksView } from '@/components/views/ReportsAndTasksView';
 import { CheckCircle2 } from 'lucide-react';
 import { BrandLogo } from '@/components/BrandLogo';
 
+function AuthGate({ children }: { children: React.ReactNode }) {
+  const { loading, isAuthorized, isOfflineGuest } = useAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-[#0d111a] flex flex-col items-center justify-center p-4">
+        <BrandLogo size="lg" showText={false} className="animate-pulse" />
+        <p className="text-base font-semibold text-white mt-4 tracking-wide">
+          Carregando Lumina Sales...
+        </p>
+        <p className="text-xs text-slate-400 mt-1">
+          Verificando credenciais e sincronização de dados
+        </p>
+      </div>
+    );
+  }
+
+  if (!isAuthorized && !isOfflineGuest) {
+    return <AuthLoginPage />;
+  }
+
+  return <>{children}</>;
+}
+
 function AppContent() {
-  const { activeTab, loading, toastMessage, state, updateSettings } = useLumina();
+  const {
+    activeTab,
+    loading,
+    toastMessage,
+    state,
+    updateSettings,
+    isMigrationModalOpen,
+    closeMigrationModal,
+  } = useLumina();
   const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [isTimerModalOpen, setIsTimerModalOpen] = useState(false);
 
@@ -81,6 +116,10 @@ function AppContent() {
         isOpen={isTimerModalOpen}
         onClose={() => setIsTimerModalOpen(false)}
       />
+      <CloudMigrationModal
+        isOpen={isMigrationModalOpen}
+        onClose={closeMigrationModal}
+      />
 
       {/* Notificação Toast Elegante */}
       {toastMessage && (
@@ -95,9 +134,13 @@ function AppContent() {
 
 export function LuminaApp() {
   return (
-    <LuminaProvider>
-      <AppContent />
-    </LuminaProvider>
+    <AuthProvider>
+      <LuminaProvider>
+        <AuthGate>
+          <AppContent />
+        </AuthGate>
+      </LuminaProvider>
+    </AuthProvider>
   );
 }
 export default LuminaApp;
