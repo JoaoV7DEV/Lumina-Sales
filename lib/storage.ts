@@ -16,7 +16,7 @@ const DB_VERSION = 2;
 const STORE_NAME = 'app_state';
 
 export const CLEAN_DATABASE_STATE: DatabaseState = {
-  version: '1.2.0',
+  version: '1.3.1',
   lastUpdated: new Date().toISOString(),
   leads: [],
   scripts: OFFICIAL_SCRIPTS,
@@ -31,6 +31,9 @@ export const CLEAN_DATABASE_STATE: DatabaseState = {
     attendantName: 'João',
     defaultPriceTable: 'tabela_1',
     dailyGoal: 20,
+    dailyRevenueGoal: 150,
+    monthlyRevenueGoal: 3500,
+    sidebarCollapsed: false,
     theme: 'dark',
     timezone: 'America/Sao_Paulo',
     isDemoData: false,
@@ -92,16 +95,42 @@ function migrateAndEnrichState(rawState: DatabaseState): DatabaseState {
   const missingPackages = OFFICIAL_PACKAGES.filter((p) => !existingPackageIds.has(p.id));
   const mergedPackages = [...existingPackages, ...missingPackages];
 
-  // 4. Garantir configurações com nome do atendente padrão (João) e novas metas
+  // 4. Garantir configurações com nome do atendente padrão (João) e persistência rigorosa das metas
   const rawSettings = rawState.settings || {};
+
+  // Recuperar metas persistidas de contingência do localStorage se existirem
+  let persistentGoals: { dailyGoal?: number; dailyRevenueGoal?: number; monthlyRevenueGoal?: number; theme?: 'dark' | 'light' } = {};
+  if (typeof window !== 'undefined') {
+    try {
+      const g = localStorage.getItem('lumina_user_goals');
+      if (g) persistentGoals = JSON.parse(g);
+    } catch {
+      // Ignorar erro de parse
+    }
+  }
+
+  const dailyGoal = typeof rawSettings.dailyGoal === 'number' && rawSettings.dailyGoal > 0
+    ? rawSettings.dailyGoal
+    : (persistentGoals.dailyGoal || 20);
+
+  const dailyRevenueGoal = typeof rawSettings.dailyRevenueGoal === 'number' && rawSettings.dailyRevenueGoal > 0
+    ? rawSettings.dailyRevenueGoal
+    : (persistentGoals.dailyRevenueGoal || 150);
+
+  const monthlyRevenueGoal = typeof rawSettings.monthlyRevenueGoal === 'number' && rawSettings.monthlyRevenueGoal > 0
+    ? rawSettings.monthlyRevenueGoal
+    : (persistentGoals.monthlyRevenueGoal || 3500);
+
+  const theme = rawSettings.theme || persistentGoals.theme || 'dark';
+
   const settings: AppSettings = {
     attendantName: rawSettings.attendantName || 'João',
     defaultPriceTable: rawSettings.defaultPriceTable || 'tabela_1',
-    dailyGoal: rawSettings.dailyGoal || 20,
-    dailyRevenueGoal: rawSettings.dailyRevenueGoal || 150,
-    monthlyRevenueGoal: rawSettings.monthlyRevenueGoal || 3500,
-    sidebarCollapsed: rawSettings.sidebarCollapsed || false,
-    theme: rawSettings.theme || 'dark',
+    dailyGoal,
+    dailyRevenueGoal,
+    monthlyRevenueGoal,
+    sidebarCollapsed: typeof rawSettings.sidebarCollapsed === 'boolean' ? rawSettings.sidebarCollapsed : false,
+    theme,
     timezone: rawSettings.timezone || 'America/Sao_Paulo',
     isDemoData: rawSettings.isDemoData !== undefined ? rawSettings.isDemoData : true,
     customNiches: rawSettings.customNiches || [],
@@ -109,7 +138,7 @@ function migrateAndEnrichState(rawState: DatabaseState): DatabaseState {
 
   return {
     ...rawState,
-    version: '1.3.0',
+    version: '1.3.1',
     leads: migratedLeads,
     scripts: mergedScripts,
     packages: mergedPackages,
@@ -158,7 +187,7 @@ export async function loadDatabaseState(): Promise<DatabaseState> {
     // Sem cache
   }
 
-  // Se nada existir, inicializa com os dados oficiais V1.2
+  // Se nada existir, inicializa com os dados oficiais V1.3.1
   await saveDatabaseState(INITIAL_DATABASE_STATE);
   return INITIAL_DATABASE_STATE;
 }
@@ -168,18 +197,41 @@ export async function saveDatabaseState(state: DatabaseState): Promise<void> {
 
   const stateToSave = {
     ...state,
-    version: '1.2.0',
+    version: '1.3.1',
     lastUpdated: new Date().toISOString(),
   };
 
-  // 1. Salvar no IndexedDB
+  // Salvar backup persistente das metas e configurações no localStorage
+  if (state.settings) {
+    try {
+      localStorage.setItem(
+        'lumina_user_goals',
+        JSON.stringify({
+          dailyGoal: state.settings.dailyGoal,
+          dailyRevenueGoal: state.settings.dailyRevenueGoal,
+          monthlyRevenueGoal: state.settings.monthlyRevenueGoal,
+          theme: state.settings.theme,
+        })
+      );
+    } catch {
+      // Ignorar fallback
+    }
+  }
+
+  // 1. Salvar no IndexedDB aguardando conclusão da transação
   try {
     const db = await openIndexedDB();
-    const tx = db.transaction(STORE_NAME, 'readwrite');
-    const store = tx.objectStore(STORE_NAME);
-    store.put(stateToSave, STORAGE_KEY);
+    await new Promise<void>((resolve, reject) => {
+      const tx = db.transaction(STORE_NAME, 'readwrite');
+      const store = tx.objectStore(STORE_NAME);
+      const req = store.put(stateToSave, STORAGE_KEY);
+      req.onsuccess = () => {};
+      req.onerror = () => reject(req.error);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
   } catch {
-    // Falha silenciosa no IndexedDB, prossegue com fallback
+    // Prossegue com redundância em localStorage
   }
 
   // 2. Salvar também no LocalStorage como redundância
@@ -195,14 +247,60 @@ export async function saveDatabaseState(state: DatabaseState): Promise<void> {
   }
 }
 
-export async function resetToDemoState(): Promise<DatabaseState> {
-  await saveDatabaseState(INITIAL_DATABASE_STATE);
-  return INITIAL_DATABASE_STATE;
+export async function resetToDemoState(preserveSettings?: AppSettings): Promise<DatabaseState> {
+  const mergedSettings: AppSettings = {
+    ...INITIAL_DATABASE_STATE.settings,
+    ...(preserveSettings
+      ? {
+          attendantName: preserveSettings.attendantName,
+          defaultPriceTable: preserveSettings.defaultPriceTable,
+          dailyGoal: preserveSettings.dailyGoal,
+          dailyRevenueGoal: preserveSettings.dailyRevenueGoal,
+          monthlyRevenueGoal: preserveSettings.monthlyRevenueGoal,
+          sidebarCollapsed: preserveSettings.sidebarCollapsed,
+          theme: preserveSettings.theme,
+          customNiches: preserveSettings.customNiches,
+        }
+      : {}),
+    isDemoData: true,
+  };
+
+  const stateToSet: DatabaseState = {
+    ...INITIAL_DATABASE_STATE,
+    version: '1.3.1',
+    settings: mergedSettings,
+  };
+
+  await saveDatabaseState(stateToSet);
+  return stateToSet;
 }
 
-export async function resetToCleanState(): Promise<DatabaseState> {
-  await saveDatabaseState(CLEAN_DATABASE_STATE);
-  return CLEAN_DATABASE_STATE;
+export async function resetToCleanState(preserveSettings?: AppSettings): Promise<DatabaseState> {
+  const mergedSettings: AppSettings = {
+    ...CLEAN_DATABASE_STATE.settings,
+    ...(preserveSettings
+      ? {
+          attendantName: preserveSettings.attendantName,
+          defaultPriceTable: preserveSettings.defaultPriceTable,
+          dailyGoal: preserveSettings.dailyGoal,
+          dailyRevenueGoal: preserveSettings.dailyRevenueGoal,
+          monthlyRevenueGoal: preserveSettings.monthlyRevenueGoal,
+          sidebarCollapsed: preserveSettings.sidebarCollapsed,
+          theme: preserveSettings.theme,
+          customNiches: preserveSettings.customNiches,
+        }
+      : {}),
+    isDemoData: false,
+  };
+
+  const stateToSet: DatabaseState = {
+    ...CLEAN_DATABASE_STATE,
+    version: '1.3.1',
+    settings: mergedSettings,
+  };
+
+  await saveDatabaseState(stateToSet);
+  return stateToSet;
 }
 
 export function exportDatabaseBackupJson(state: DatabaseState): void {

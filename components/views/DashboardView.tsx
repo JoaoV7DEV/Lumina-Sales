@@ -17,6 +17,8 @@ import {
   BarChart3,
   TrendingUp,
   ChevronRight,
+  ChevronDown,
+  ChevronUp,
   Check,
   Eye,
   Edit3,
@@ -28,6 +30,7 @@ import {
   CalendarRange,
   SlidersHorizontal,
   ArrowUpDown,
+  LineChart as LineChartIcon,
 } from 'lucide-react';
 import { formatBRL, formatPercent, formatDateBR, FUNNEL_STAGES } from '@/lib/formatters';
 import { Lead, LeadStatus } from '@/lib/types';
@@ -37,6 +40,9 @@ type PeriodType = 'hoje' | '7d' | '14d' | '30d' | 'mes_atual' | 'todo' | 'person
 
 // Métrica do Gráfico de Evolução Comercial
 type ChartMetric = 'sales_amount' | 'cash_received' | 'approaches' | 'sales_count';
+
+// Modo de visualização do gráfico: Barras ou Linhas
+type ChartViewMode = 'bars' | 'lines';
 
 // Ordenação de Nichos
 type NicheSortMetric = 'revenue' | 'sales' | 'approaches' | 'conversion' | 'response_rate';
@@ -66,7 +72,7 @@ export function DashboardView() {
   } = useLumina();
 
   // =========================================================
-  // ESTADOS DE FILTRO DE PERÍODO
+  // ESTADOS DE FILTRO DE PERÍODO & GRÁFICO
   // =========================================================
   const [selectedPeriod, setSelectedPeriod] = useState<PeriodType>('30d');
   const [customStartDate, setCustomStartDate] = useState<string>(() => {
@@ -78,8 +84,9 @@ export function DashboardView() {
     return new Date().toISOString().split('T')[0];
   });
 
-  // Métrica ativa do gráfico diário
+  // Métrica ativa do gráfico diário e modo de exibição (Barras vs Linhas)
   const [chartMetric, setChartMetric] = useState<ChartMetric>('sales_amount');
+  const [chartViewMode, setChartViewMode] = useState<ChartViewMode>('bars');
 
   // Ordenação da Tabela de Nichos
   const [nicheSort, setNicheSort] = useState<NicheSortMetric>('revenue');
@@ -87,6 +94,12 @@ export function DashboardView() {
   // Filtros da Central de Atenção Comercial
   const [attentionCategory, setAttentionCategory] = useState<AttentionCategory>('todos');
   const [attentionTag, setAttentionTag] = useState<AttentionFilterTag>('todos');
+
+  // Controle de "Resumo Primeiro — Detalhes Sob Demanda"
+  const [showAllAttention, setShowAllAttention] = useState(false);
+  const [showAllNiches, setShowAllNiches] = useState(false);
+  const [showMoreMetrics, setShowMoreMetrics] = useState(false);
+  const [showAllActivities, setShowAllActivities] = useState(false);
 
   // Modal para Ajuste Rápido de Metas
   const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
@@ -101,7 +114,7 @@ export function DashboardView() {
   const todayStr = useMemo(() => new Date().toISOString().split('T')[0], []);
   const currentMonthPrefix = useMemo(() => todayStr.slice(0, 7), [todayStr]); // YYYY-MM
 
-  // Metas do Sistema (ou padrões definidos na V1.3)
+  // Metas do Sistema (ou padrões definidos na V1.3.1)
   const dailyApproachesGoal = state.settings.dailyGoal || 20;
   const dailyRevenueGoal = state.settings.dailyRevenueGoal || 150;
   const monthlyRevenueGoal = state.settings.monthlyRevenueGoal || 3500;
@@ -154,36 +167,35 @@ export function DashboardView() {
         periodLabel: 'Mês atual',
       };
     }
-    if (selectedPeriod === 'personalizado') {
+    if (selectedPeriod === 'todo') {
       return {
-        periodStartStr: customStartDate || '2000-01-01',
-        periodEndStr: customEndDate || todayStr,
-        periodLabel: 'Personalizado',
+        periodStartStr: '2020-01-01',
+        periodEndStr: '2099-12-31',
+        periodLabel: 'Todo o histórico',
       };
     }
-    // 'todo'
     return {
-      periodStartStr: '2000-01-01',
-      periodEndStr: '2099-12-31',
-      periodLabel: 'Todo o período',
+      periodStartStr: customStartDate,
+      periodEndStr: customEndDate,
+      periodLabel: `De ${formatDateBR(customStartDate)} até ${formatDateBR(customEndDate)}`,
     };
   }, [selectedPeriod, todayStr, currentMonthPrefix, customStartDate, customEndDate]);
 
-  // Função auxiliar para verificar se uma data ISO está dentro do período
+  // Função auxiliar de verificação se uma data ISO está dentro do período
   const isDateInPeriod = useCallback(
-    (dateIso?: string | null) => {
-      if (!dateIso) return false;
-      const dateOnly = dateIso.split('T')[0];
+    (isoDateString?: string) => {
+      if (!isoDateString) return false;
+      const dateOnly = isoDateString.split('T')[0];
       return dateOnly >= periodStartStr && dateOnly <= periodEndStr;
     },
     [periodStartStr, periodEndStr]
   );
 
   // =========================================================
-  // CÁLCULO DE METAS COMERCIAIS E FINANCEIRAS
+  // METAS E PROGRESSO EM TEMPO REAL
   // =========================================================
 
-  // 1. Meta Diária de Abordagens (Operacional)
+  // 1. Meta Diária de Abordagens
   const approachesToday = useMemo(() => {
     let count = 0;
     state.leads.forEach((l) => {
@@ -278,7 +290,7 @@ export function DashboardView() {
     return count;
   }, [state.leads, isDateInPeriod]);
 
-  const periodResponseRate = periodApproaches > 0 ? (periodResponses / periodApproaches) * 100 : 0;
+  const periodResponseRate = periodApproaches > 0 ? (periodResponses / periodApproaches) * 100 : null;
 
   // Interessados (leads ativos em estágios de qualificação e proposta)
   const interestedLeadsCount = useMemo(() => {
@@ -337,7 +349,7 @@ export function DashboardView() {
   }, [state.sales]);
 
   // Taxa de conversão do período (vendas no período / abordagens no período)
-  const periodConversionRate = periodApproaches > 0 ? (periodSalesCount / periodApproaches) * 100 : 0;
+  const periodConversionRate = periodApproaches > 0 ? (periodSalesCount / periodApproaches) * 100 : null;
   const periodAverageTicket = periodSalesCount > 0 ? periodSoldValue / periodSalesCount : 0;
 
   // =========================================================
@@ -496,6 +508,11 @@ export function DashboardView() {
     return { overdue, today, upcoming, total: overdue + today + upcoming };
   }, [state.leads, todayStr]);
 
+  // Lista visível de atenção (Top 3 primeiro, expande sob demanda)
+  const displayedAttentionLeads = useMemo(() => {
+    return showAllAttention ? attentionLeads : attentionLeads.slice(0, 3);
+  }, [attentionLeads, showAllAttention]);
+
   // =========================================================
   // DESEMPENHO POR NICHO (ANALÍTICO)
   // =========================================================
@@ -529,7 +546,6 @@ export function DashboardView() {
       }
       map[niche].totalLeads++;
 
-      // Abordagens no período
       (lead.timeline || []).forEach((ev) => {
         if (ev.type === 'approach_confirmed' && isDateInPeriod(ev.timestamp)) {
           map[niche].approaches++;
@@ -575,8 +591,8 @@ export function DashboardView() {
     });
 
     const list = Object.values(map).map((item) => {
-      const responseRate = item.approaches > 0 ? (item.responses / item.approaches) * 100 : 0;
-      const conversionRate = item.approaches > 0 ? (item.sales / item.approaches) * 100 : 0;
+      const responseRate = item.approaches > 0 ? (item.responses / item.approaches) * 100 : null;
+      const conversionRate = item.approaches > 0 ? (item.sales / item.approaches) * 100 : null;
       return {
         ...item,
         responseRate,
@@ -589,8 +605,16 @@ export function DashboardView() {
       if (nicheSort === 'revenue') return b.revenue - a.revenue;
       if (nicheSort === 'sales') return b.sales - a.sales;
       if (nicheSort === 'approaches') return b.approaches - a.approaches;
-      if (nicheSort === 'conversion') return b.conversionRate - a.conversionRate;
-      if (nicheSort === 'response_rate') return b.responseRate - a.responseRate;
+      if (nicheSort === 'conversion') {
+        const rateA = a.conversionRate ?? -1;
+        const rateB = b.conversionRate ?? -1;
+        return rateB - rateA;
+      }
+      if (nicheSort === 'response_rate') {
+        const rateA = a.responseRate ?? -1;
+        const rateB = b.responseRate ?? -1;
+        return rateB - rateA;
+      }
       return 0;
     });
 
@@ -598,6 +622,11 @@ export function DashboardView() {
 
     return { list, maxRevenue };
   }, [state.leads, periodSales, nicheSort, isDateInPeriod]);
+
+  // Lista visível de nichos (Top 3 primeiro, expande sob demanda)
+  const displayedNiches = useMemo(() => {
+    return showAllNiches ? nicheAnalytics.list : nicheAnalytics.list.slice(0, 3);
+  }, [nicheAnalytics.list, showAllNiches]);
 
   // =========================================================
   // GRÁFICO DINÂMICO DIÁRIO "EVOLUÇÃO COMERCIAL"
@@ -659,44 +688,92 @@ export function DashboardView() {
         date: dateStr,
         label: dayLabel,
         approaches: approachesCount,
-        salesCount,
         salesAmount,
+        salesCount,
         cashReceived,
       });
     }
 
     let maxVal = 1;
-    if (chartMetric === 'sales_amount') {
-      maxVal = Math.max(100, ...list.map((i) => i.salesAmount));
-    } else if (chartMetric === 'cash_received') {
-      maxVal = Math.max(100, ...list.map((i) => i.cashReceived));
-    } else if (chartMetric === 'approaches') {
-      maxVal = Math.max(dailyApproachesGoal, ...list.map((i) => i.approaches));
-    } else {
-      maxVal = Math.max(3, ...list.map((i) => i.salesCount));
+    let totalMetricVal = 0;
+
+    list.forEach((i) => {
+      let cur = 0;
+      if (chartMetric === 'sales_amount') cur = i.salesAmount;
+      else if (chartMetric === 'cash_received') cur = i.cashReceived;
+      else if (chartMetric === 'approaches') cur = i.approaches;
+      else cur = i.salesCount;
+
+      totalMetricVal += cur;
+      if (cur > maxVal) maxVal = cur;
+    });
+
+    return { items: list, maxVal, totalMetricVal };
+  }, [state.leads, state.sales, selectedPeriod, chartMetric]);
+
+  // SVG Line Chart path computing
+  const svgLineChart = useMemo(() => {
+    const items = chartData.items;
+    const n = items.length;
+    if (n === 0) return { linePath: '', areaPath: '', points: [] };
+
+    const width = 1000;
+    const height = 200;
+    const padTop = 20;
+    const padBottom = 20;
+    const padX = 25;
+    const usableW = width - padX * 2;
+    const usableH = height - padTop - padBottom;
+    const maxVal = Math.max(1, chartData.maxVal);
+
+    const points = items.map((item, idx) => {
+      const x = padX + (n === 1 ? usableW / 2 : (idx / (n - 1)) * usableW);
+      let val = 0;
+      if (chartMetric === 'sales_amount') val = item.salesAmount;
+      else if (chartMetric === 'cash_received') val = item.cashReceived;
+      else if (chartMetric === 'approaches') val = item.approaches;
+      else val = item.salesCount;
+
+      const y = height - padBottom - (val / maxVal) * usableH;
+      return { x, y, val, label: item.label, date: item.date };
+    });
+
+    if (points.length === 1) {
+      const p = points[0];
+      return {
+        linePath: `M ${p.x - 40} ${p.y} L ${p.x + 40} ${p.y}`,
+        areaPath: `M ${p.x - 40} ${height - padBottom} L ${p.x - 40} ${p.y} L ${p.x + 40} ${p.y} L ${p.x + 40} ${height - padBottom} Z`,
+        points,
+      };
     }
 
-    return { items: list, maxVal };
-  }, [selectedPeriod, chartMetric, state.leads, state.sales, dailyApproachesGoal]);
+    const linePath = points.reduce((acc, p, i) => `${acc} ${i === 0 ? 'M' : 'L'} ${p.x.toFixed(1)} ${p.y.toFixed(1)}`, '');
+    const firstX = points[0].x.toFixed(1);
+    const lastX = points[points.length - 1].x.toFixed(1);
+    const bottomY = (height - padBottom).toFixed(1);
+    const areaPath = `${linePath} L ${lastX} ${bottomY} L ${firstX} ${bottomY} Z`;
+
+    return { linePath, areaPath, points };
+  }, [chartData, chartMetric]);
 
   // =========================================================
-  // SISTEMA DE OFENSIVA (DUOLINGO STREAK COMPACTO)
+  // SISTEMA DE OFENSIVA DUOLINGO (DIAS CONSECUTIVOS)
   // =========================================================
-  const { currentStreak, weekDays, streakStatus } = useMemo(() => {
-    const daysOfWeekNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
-    const now = new Date();
-
+  const duolingoStreak = useMemo(() => {
     const approachesByDay: Record<string, number> = {};
     state.leads.forEach((l) => {
       (l.timeline || []).forEach((ev) => {
         if (ev.type === 'approach_confirmed' && ev.timestamp) {
-          const date = ev.timestamp.split('T')[0];
-          approachesByDay[date] = (approachesByDay[date] || 0) + 1;
+          const day = ev.timestamp.split('T')[0];
+          approachesByDay[day] = (approachesByDay[day] || 0) + 1;
         }
       });
     });
 
+    const daysOfWeekNames = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
     const week = [];
+    const now = new Date();
+
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
       const dateKey = d.toISOString().split('T')[0];
@@ -748,7 +825,7 @@ export function DashboardView() {
     };
   }, [state.leads, state.settings.isDemoData, todayStr, approachesToday, dailyApproachesGoal]);
 
-  // Funil por Etapas (14 etapas da V1.2/V1.3)
+  // Funil por Etapas (14 etapas da V1.2/V1.3.1)
   const funnelCounts = useMemo(() => {
     const counts: Record<string, number> = {};
     FUNNEL_STAGES.forEach((s) => (counts[s.id] = 0));
@@ -775,11 +852,14 @@ export function DashboardView() {
       });
     });
     return events
-      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-      .slice(0, 6);
+      .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
   }, [state.leads]);
 
-  // Ações de Ajuste de Metas
+  const displayedActivities = useMemo(() => {
+    return showAllActivities ? recentActivities.slice(0, 8) : recentActivities.slice(0, 3);
+  }, [recentActivities, showAllActivities]);
+
+  // Ações de Ajuste de Metas (com persistência aguardada no IndexedDB e LocalStorage)
   const handleOpenGoalModal = (type: 'daily_approaches' | 'daily_revenue' | 'monthly_revenue') => {
     setEditingGoalTarget(type);
     if (type === 'daily_approaches') setGoalInputValue(dailyApproachesGoal);
@@ -788,18 +868,18 @@ export function DashboardView() {
     setIsGoalModalOpen(true);
   };
 
-  const handleSaveGoal = () => {
+  const handleSaveGoal = async () => {
     const val = Number(goalInputValue);
     if (isNaN(val) || val <= 0) return;
 
     if (editingGoalTarget === 'daily_approaches') {
-      updateSettings({ dailyGoal: val });
+      await updateSettings({ dailyGoal: val });
       showToast(`Meta de abordagens diárias atualizada para ${val}!`);
     } else if (editingGoalTarget === 'daily_revenue') {
-      updateSettings({ dailyRevenueGoal: val });
+      await updateSettings({ dailyRevenueGoal: val });
       showToast(`Meta de faturamento diário atualizada para ${formatBRL(val)}!`);
     } else {
-      updateSettings({ monthlyRevenueGoal: val });
+      await updateSettings({ monthlyRevenueGoal: val });
       showToast(`Meta de faturamento mensal atualizada para ${formatBRL(val)}!`);
     }
     setIsGoalModalOpen(false);
@@ -816,7 +896,6 @@ export function DashboardView() {
       type: 'status_changed',
     });
 
-    // Limpar data de retorno ou reagendar
     updateLead(leadId, {
       nextFollowUpDate: undefined,
       nextAction: undefined,
@@ -830,100 +909,45 @@ export function DashboardView() {
   return (
     <div className="space-y-6 pb-12">
       {/* ========================================================= */}
-      {/* CABEÇALHO DO DASHBOARD + BARRA DE FILTROS DE PERÍODO      */}
+      {/* CABEÇALHO DO DASHBOARD (LIMPO, SEM BARRA DUPLICADA)       */}
       {/* ========================================================= */}
-      <div className="flex flex-col gap-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pb-1">
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-bold tracking-wider uppercase text-[#C9A46B]">
-                PAINEL OPERACIONAL LUMINA
-              </span>
-              <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
-                V1.3
-              </span>
-            </div>
-            <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white font-sans mt-0.5">
-              Dashboard Operacional
-            </h1>
-            <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
-              Acompanhe metas, decisões, próximos retornos e desempenho analítico por nicho.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-2.5 shrink-0">
-            <button
-              onClick={() => setActiveTab('prospecting')}
-              className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-white dark:bg-[#161b26] hover:bg-slate-100 dark:hover:bg-[#1e2535] text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 transition-colors shadow-xs"
-            >
-              Abrir atendimento
-            </button>
-
-            <button
-              onClick={() => setActiveTab('financial')}
-              className="h-10 px-4 rounded-xl text-xs sm:text-sm font-bold bg-[#111622] hover:bg-[#18202e] dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 transition-colors shadow-xs flex items-center gap-1.5"
-            >
-              <span>+ Registrar venda</span>
-            </button>
-          </div>
-        </div>
-
-        {/* SELETOR DE PERÍODO COMPLETO */}
-        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 p-3 rounded-2xl bg-white dark:bg-[#141923] border border-slate-200 dark:border-slate-800 shadow-xs">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-1">
+        <div>
           <div className="flex items-center gap-2">
-            <CalendarRange className="w-4 h-4 text-[#C9A46B] shrink-0 ml-1" />
-            <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-              Período de Análise:
+            <span className="text-[11px] font-bold tracking-wider uppercase text-[#C9A46B]">
+              PAINEL OPERACIONAL LUMINA
+            </span>
+            <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-slate-200 dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-300 dark:border-slate-700">
+              V1.3.1
             </span>
           </div>
+          <h1 className="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white font-sans mt-0.5">
+            Dashboard Operacional
+          </h1>
+          <p className="text-xs sm:text-sm text-slate-500 dark:text-slate-400 mt-0.5">
+            Acompanhe decisões operacionais, metas em tempo real e evolução comercial.
+          </p>
+        </div>
 
-          <div className="flex flex-wrap items-center gap-1.5">
-            {[
-              { id: 'hoje', label: 'Hoje' },
-              { id: '7d', label: '7 dias' },
-              { id: '14d', label: '14 dias' },
-              { id: '30d', label: '30 dias' },
-              { id: 'mes_atual', label: 'Mês atual' },
-              { id: 'todo', label: 'Todo o período' },
-              { id: 'personalizado', label: 'Personalizado' },
-            ].map((p) => (
-              <button
-                key={p.id}
-                onClick={() => setSelectedPeriod(p.id as PeriodType)}
-                className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all ${
-                  selectedPeriod === p.id
-                    ? 'bg-[#C9A46B] text-slate-950 shadow-xs font-bold'
-                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
-                }`}
-              >
-                {p.label}
-              </button>
-            ))}
-          </div>
+        <div className="flex items-center gap-2.5 shrink-0">
+          <button
+            onClick={() => setActiveTab('prospecting')}
+            className="h-10 px-4 rounded-xl text-xs sm:text-sm font-semibold bg-white dark:bg-[#161b26] hover:bg-slate-100 dark:hover:bg-[#1e2535] text-slate-800 dark:text-white border border-slate-200 dark:border-slate-800 transition-colors shadow-xs"
+          >
+            Abrir atendimento
+          </button>
 
-          {/* Date Pickers se Personalizado */}
-          {selectedPeriod === 'personalizado' && (
-            <div className="flex items-center gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
-              <input
-                type="date"
-                value={customStartDate}
-                onChange={(e) => setCustomStartDate(e.target.value)}
-                className="h-8 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
-              />
-              <span className="text-xs text-slate-400">até</span>
-              <input
-                type="date"
-                value={customEndDate}
-                onChange={(e) => setCustomEndDate(e.target.value)}
-                className="h-8 px-2 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs text-slate-900 dark:text-white"
-              />
-            </div>
-          )}
+          <button
+            onClick={() => setActiveTab('financial')}
+            className="h-10 px-4 rounded-xl text-xs sm:text-sm font-bold bg-[#111622] hover:bg-[#18202e] dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 transition-colors shadow-xs flex items-center gap-1.5"
+          >
+            <span>+ Registrar venda</span>
+          </button>
         </div>
       </div>
 
       {/* ========================================================= */}
-      {/* SEÇÃO 1: METAS COMERCIAIS E FINANCEIRAS (3 METAS V1.3)    */}
+      {/* SEÇÃO 1: METAS COMERCIAIS & FINANCEIRAS (3 METAS)         */}
       {/* ========================================================= */}
       <div>
         <div className="flex items-center justify-between mb-2.5">
@@ -931,7 +955,7 @@ export function DashboardView() {
             <Target className="w-4 h-4 text-[#C9A46B]" />
             <span>Metas Comerciais & Financeiras</span>
           </h2>
-          <span className="text-[11px] text-slate-400">
+          <span className="text-[11px] text-slate-400 hidden sm:inline">
             Clique no ícone de lápis para ajustar qualquer meta
           </span>
         </div>
@@ -979,7 +1003,7 @@ export function DashboardView() {
             <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-1 text-amber-500 font-semibold">
                 <Flame className="w-3.5 h-3.5 fill-amber-500" />
-                {currentStreak} dias de ofensiva
+                {duolingoStreak.currentStreak} dias de ofensiva
               </span>
               <span>
                 {approachesToday >= dailyApproachesGoal
@@ -1055,8 +1079,8 @@ export function DashboardView() {
 
             <div>
               <div className="flex items-center gap-2">
-                <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center font-bold text-xs">
-                  <TrendingUp className="w-4 h-4" />
+                <div className="w-8 h-8 rounded-xl bg-indigo-500/15 text-indigo-400 flex items-center justify-center font-bold text-xs font-mono">
+                  Mês
                 </div>
                 <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                   Meta 3: Faturamento Mensal
@@ -1087,7 +1111,7 @@ export function DashboardView() {
             <div className="pt-3 mt-3 border-t border-slate-100 dark:border-slate-800/80 flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400">
               <span className="flex items-center gap-1">
                 <Receipt className="w-3 h-3 text-indigo-400" />
-                Caixa mês: {formatBRL(cashReceivedCurrentMonth)}
+                Caixa no mês: {formatBRL(cashReceivedCurrentMonth)}
               </span>
               <span>
                 {salesAmountCurrentMonth >= monthlyRevenueGoal
@@ -1100,23 +1124,31 @@ export function DashboardView() {
       </div>
 
       {/* ========================================================= */}
-      {/* SEÇÃO 2: 8 CARDS DE INDICADORES NO PERÍODO (KPIS)         */}
+      {/* SEÇÃO 2: RESULTADOS OPERACIONAIS (KPIS CHAVE)             */}
       {/* ========================================================= */}
       <div>
         <div className="flex items-center justify-between mb-2.5">
-          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400">
-            Resultados do Período ({periodLabel})
+          <h2 className="text-sm font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 flex items-center gap-1.5">
+            <BarChart3 className="w-4 h-4 text-[#C9A46B]" />
+            <span>Resultados do Período ({periodLabel})</span>
           </h2>
-          <span className="text-xs text-slate-400">
-            {periodStartStr} até {periodEndStr}
-          </span>
+
+          {/* Toggle de Métricas Secundárias no Mobile */}
+          <button
+            onClick={() => setShowMoreMetrics(!showMoreMetrics)}
+            className="sm:hidden text-xs font-semibold text-[#C9A46B] flex items-center gap-1"
+          >
+            <span>{showMoreMetrics ? 'Menos métricas' : 'Mais métricas'}</span>
+            {showMoreMetrics ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3.5 sm:gap-4">
+        {/* 4 Cards Primários */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4">
           {/* Card: Total Leads */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-medium">Total de Leads</span>
+              <span className="text-xs font-medium">Leads Cadastrados</span>
               <Users className="w-4 h-4 text-[#C9A46B]" />
             </div>
             <div className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white pt-1">
@@ -1135,21 +1167,7 @@ export function DashboardView() {
               {periodApproaches}
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              No período selecionado
-            </p>
-          </div>
-
-          {/* Card: Respostas & Taxa */}
-          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
-            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
-              <span className="text-xs font-medium">Respostas</span>
-              <RotateCcw className="w-4 h-4 text-amber-400" />
-            </div>
-            <div className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white pt-1">
-              {periodResponses}
-            </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              {formatPercent(periodResponseRate)} de taxa de resposta
+              {periodResponseRate !== null ? `${formatPercent(periodResponseRate)} de resposta` : 'N/D de taxa resposta'}
             </p>
           </div>
 
@@ -1162,7 +1180,7 @@ export function DashboardView() {
             <div className="text-2xl sm:text-3xl font-bold font-mono text-slate-900 dark:text-white pt-1">
               {interestedLeadsCount}
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Oportunidades aquecidas</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Oportunidades quentes</p>
           </div>
 
           {/* Card: Vendas Fechadas */}
@@ -1175,10 +1193,13 @@ export function DashboardView() {
               {periodSalesCount}
             </div>
             <p className="text-[11px] text-slate-500 dark:text-slate-400">
-              {formatPercent(periodConversionRate)} de conversão
+              {periodConversionRate !== null ? `${formatPercent(periodConversionRate)} conversão` : 'N/D de conversão'}
             </p>
           </div>
+        </div>
 
+        {/* 4 Cards Secundários (Faturamento, Caixa, Ticket Médio, Respostas) */}
+        <div className={`mt-3 sm:mt-4 grid grid-cols-2 lg:grid-cols-4 gap-3 sm:gap-4 ${showMoreMetrics ? 'grid' : 'hidden sm:grid'}`}>
           {/* Card: Faturamento */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
@@ -1188,7 +1209,7 @@ export function DashboardView() {
             <div className="text-xl sm:text-2xl font-bold font-mono text-emerald-600 dark:text-emerald-400 pt-1">
               {formatBRL(periodSoldValue)}
             </div>
-            <p className="text-[11px] text-slate-500 dark:text-slate-400">Vendas assinadas no período</p>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">Vendas no período</p>
           </div>
 
           {/* Card: Caixa Recebido */}
@@ -1203,7 +1224,7 @@ export function DashboardView() {
             <p className="text-[11px] text-slate-500 dark:text-slate-400">Entradas quitadas</p>
           </div>
 
-          {/* Card: Ticket Médio / Saldo Pendente */}
+          {/* Card: Ticket Médio */}
           <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
             <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
               <span className="text-xs font-medium">Ticket Médio</span>
@@ -1216,11 +1237,26 @@ export function DashboardView() {
               {formatBRL(totalPendingBalance)} a receber
             </p>
           </div>
+
+          {/* Card: Respostas */}
+          <div className="p-4 sm:p-5 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-1">
+            <div className="flex items-center justify-between text-slate-500 dark:text-slate-400">
+              <span className="text-xs font-medium">Respostas</span>
+              <RotateCcw className="w-4 h-4 text-amber-400" />
+            </div>
+            <div className="text-xl sm:text-2xl font-bold font-mono text-slate-900 dark:text-white pt-1">
+              {periodResponses}
+            </div>
+            <p className="text-[11px] text-slate-500 dark:text-slate-400">
+              {periodResponseRate !== null ? `${formatPercent(periodResponseRate)} taxa` : 'Sem abordagens'}
+            </p>
+          </div>
         </div>
       </div>
 
       {/* ========================================================= */}
       {/* SEÇÃO 3: CENTRAL DE ATENÇÃO COMERCIAL (RETORNOS E FOLLOWS) */}
+      {/* "Resumo Primeiro — Detalhes Sob Demanda"                   */}
       {/* ========================================================= */}
       <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
@@ -1232,7 +1268,7 @@ export function DashboardView() {
               </h3>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Acompanhamentos pendentes, sem resposta, visualizados e follow-ups agendados para não perder vendas.
+              Acompanhamentos pendentes e retornos agendados para não perder vendas.
             </p>
           </div>
 
@@ -1242,7 +1278,7 @@ export function DashboardView() {
               onClick={() => setAttentionCategory('todos')}
               className={`shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 attentionCategory === 'todos'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -1272,7 +1308,7 @@ export function DashboardView() {
               onClick={() => setAttentionCategory('proximos')}
               className={`shrink-0 px-2.5 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
                 attentionCategory === 'proximos'
-                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs'
+                  ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold'
                   : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -1282,21 +1318,21 @@ export function DashboardView() {
         </div>
 
         {/* Sub-filtros por Tipo de Pendência */}
-        <div className="w-full overflow-x-auto scrollbar-none flex items-center gap-2 pt-1 touch-pan-x -webkit-overflow-scrolling-touch">
+        <div className="w-full overflow-x-auto scrollbar-none flex items-center gap-1.5 pt-0.5 touch-pan-x -webkit-overflow-scrolling-touch">
           {[
             { id: 'todos', label: 'Todos os tipos' },
             { id: 'sem_resposta', label: 'Sem resposta' },
-            { id: 'visualizou', label: 'Visualizou e não respondeu' },
-            { id: 'followup', label: 'Follow-up pendente' },
+            { id: 'visualizou', label: 'Visualizou' },
+            { id: 'followup', label: 'Follow-up' },
             { id: 'remarketing', label: 'Remarketing' },
-            { id: 'negociacao', label: 'Negociação / Proposta' },
+            { id: 'negociacao', label: 'Negociação' },
           ].map((tag) => (
             <button
               key={tag.id}
               onClick={() => setAttentionTag(tag.id as AttentionFilterTag)}
               className={`shrink-0 px-2.5 py-1 rounded-lg text-xs whitespace-nowrap transition-all ${
                 attentionTag === tag.id
-                  ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 font-bold'
+                  ? 'bg-slate-800 text-white dark:bg-slate-200 dark:text-slate-900 font-bold shadow-xs'
                   : 'bg-slate-100 dark:bg-slate-800/60 text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
               }`}
             >
@@ -1305,20 +1341,20 @@ export function DashboardView() {
           ))}
         </div>
 
-        {/* Lista de Retornos Pendentes */}
+        {/* Lista de Retornos Pendentes (Top 3 Primeiro) */}
         {attentionLeads.length === 0 ? (
-          <div className="py-10 text-center rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-dashed border-slate-200 dark:border-slate-800">
+          <div className="py-8 text-center rounded-xl bg-slate-50 dark:bg-slate-800/30 border border-dashed border-slate-200 dark:border-slate-800">
             <CheckCircle2 className="w-8 h-8 text-emerald-500 mx-auto stroke-[1.5]" />
             <h4 className="font-bold text-sm text-slate-800 dark:text-white mt-2">
               Tudo em dia por aqui!
             </h4>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-1 max-w-sm mx-auto">
-              Nenhum lead com retorno comercial pendente nesta categoria. Prospecções ativas continuam operando normalmente.
+              Nenhum lead com retorno comercial pendente nesta categoria.
             </p>
           </div>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-            {attentionLeads.slice(0, 8).map(({ lead, actionDate, timing }) => {
+            {displayedAttentionLeads.map(({ lead, actionDate, timing }) => {
               const isOverdue = timing === 'atrasado';
               const isToday = timing === 'hoje';
 
@@ -1354,7 +1390,6 @@ export function DashboardView() {
                         <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">
                           {lead.niche}
                         </span>
-                        {/* Tag de Canal */}
                         {lead.whatsapp && (
                           <span className="text-[10px] text-emerald-600 dark:text-emerald-400 flex items-center gap-0.5">
                             <Phone className="w-3 h-3" /> WhatsApp
@@ -1380,7 +1415,7 @@ export function DashboardView() {
                           {isOverdue
                             ? actionDate
                               ? `Atrasado (${formatDateBR(actionDate)})`
-                              : 'Atrasado (sem data agendada)'
+                              : 'Atrasado'
                             : isToday
                             ? 'Agendado para hoje'
                             : `Retorno em ${formatDateBR(actionDate)}`}
@@ -1398,17 +1433,15 @@ export function DashboardView() {
                     <button
                       onClick={() => setCompletingLead(lead)}
                       className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border border-emerald-500/30 transition-colors flex items-center gap-1"
-                      title="Concluir este retorno e registrar no histórico"
+                      title="Concluir este retorno"
                     >
                       <Check className="w-3.5 h-3.5" />
                       <span>Concluir</span>
                     </button>
 
                     <button
-                      onClick={() => {
-                        setActiveTab('prospecting');
-                      }}
-                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-white transition-colors"
+                      onClick={() => setActiveTab('prospecting')}
+                      className="px-3 py-1.5 rounded-lg text-xs font-semibold bg-[#111622] hover:bg-[#18202e] dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 transition-colors shadow-xs"
                       title="Abrir scripts e mensagens de atendimento"
                     >
                       Atendimento
@@ -1417,7 +1450,7 @@ export function DashboardView() {
                     <button
                       onClick={() => openEditLeadModal(lead.id)}
                       className="px-2.5 py-1.5 rounded-lg text-xs font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition-colors"
-                      title="Abrir ficha completa do lead"
+                      title="Abrir ficha completa"
                     >
                       Ficha
                     </button>
@@ -1427,10 +1460,346 @@ export function DashboardView() {
             })}
           </div>
         )}
+
+        {/* Botão de Expansão: Ver todos os retornos / Mostrar menos */}
+        {attentionLeads.length > 3 && (
+          <div className="pt-2 text-center border-t border-slate-100 dark:border-slate-800/80">
+            <button
+              onClick={() => setShowAllAttention(!showAllAttention)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#C9A46B] hover:text-[#e0bb80] bg-[#C9A46B]/10 hover:bg-[#C9A46B]/15 border border-[#C9A46B]/30 transition-all"
+            >
+              <span>
+                {showAllAttention
+                  ? 'Mostrar apenas os 3 retornos mais urgentes'
+                  : `Ver todos os acompanhamentos pendentes (${attentionLeads.length})`}
+              </span>
+              {showAllAttention ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ========================================================= */}
-      {/* SEÇÃO 4: DESEMPENHO POR NICHO (ANALÍTICO)                  */}
+      {/* SEÇÃO 4: EVOLUÇÃO COMERCIAL COM SELETOR DE PERÍODO        */}
+      {/* (SELETOR DE PERÍODO INTEGRADO + MODO BARRAS / LINHAS)     */}
+      {/* ========================================================= */}
+      <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
+        <div className="flex flex-col gap-4">
+          {/* Topo da Seção: Título + Seletor de Período Integrado */}
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
+            <div>
+              <div className="flex items-center gap-2">
+                <TrendingUp className="w-5 h-5 text-[#C9A46B]" />
+                <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
+                  Evolução Comercial
+                </h3>
+              </div>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                Comportamento diário no período: <strong className="text-slate-800 dark:text-slate-200">{periodLabel}</strong>
+              </p>
+            </div>
+
+            {/* SELETOR DE PERÍODO INTEGRADO NA SEÇÃO */}
+            <div className="flex flex-wrap items-center gap-1.5">
+              {[
+                { id: 'hoje', label: 'Hoje' },
+                { id: '7d', label: '7 dias' },
+                { id: '14d', label: '14 dias' },
+                { id: '30d', label: '30 dias' },
+                { id: 'mes_atual', label: 'Mês atual' },
+                { id: 'todo', label: 'Todo' },
+                { id: 'personalizado', label: 'Personalizado' },
+              ].map((p) => (
+                <button
+                  key={p.id}
+                  onClick={() => setSelectedPeriod(p.id as PeriodType)}
+                  className={`px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+                    selectedPeriod === p.id
+                      ? 'bg-[#C9A46B] text-slate-950 font-bold shadow-xs'
+                      : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800/60'
+                  }`}
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Date Pickers se Personalizado */}
+          {selectedPeriod === 'personalizado' && (
+            <div className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 dark:bg-slate-800/40 border border-slate-200 dark:border-slate-700/60 text-xs">
+              <span className="text-slate-400">De</span>
+              <input
+                type="date"
+                value={customStartDate}
+                onChange={(e) => setCustomStartDate(e.target.value)}
+                className="h-8 px-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-xs text-slate-900 dark:text-white"
+              />
+              <span className="text-slate-400">até</span>
+              <input
+                type="date"
+                value={customEndDate}
+                onChange={(e) => setCustomEndDate(e.target.value)}
+                className="h-8 px-2 rounded-lg bg-white dark:bg-slate-800 border border-slate-300 dark:border-slate-600 text-xs text-slate-900 dark:text-white"
+              />
+            </div>
+          )}
+
+          {/* Sub-bar: Métrica Selecionada + Alternância de Gráfico (Barras / Linhas) */}
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            {/* Toggle de Métricas */}
+            <div className="w-full sm:w-auto overflow-x-auto scrollbar-none flex items-center bg-slate-100 dark:bg-[#161b26] p-1 rounded-xl border border-slate-200 dark:border-slate-800 gap-1 touch-pan-x -webkit-overflow-scrolling-touch">
+              <button
+                onClick={() => setChartMetric('sales_amount')}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  chartMetric === 'sales_amount'
+                    ? 'bg-[#C9A46B] text-slate-950 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Faturamento (R$)
+              </button>
+              <button
+                onClick={() => setChartMetric('cash_received')}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  chartMetric === 'cash_received'
+                    ? 'bg-emerald-500 text-white shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Caixa Recebido (R$)
+              </button>
+              <button
+                onClick={() => setChartMetric('approaches')}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  chartMetric === 'approaches'
+                    ? 'bg-[#C9A46B] text-slate-950 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Abordagens
+              </button>
+              <button
+                onClick={() => setChartMetric('sales_count')}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
+                  chartMetric === 'sales_count'
+                    ? 'bg-[#C9A46B] text-slate-950 shadow-xs font-bold'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Vendas (Qtd)
+              </button>
+            </div>
+
+            {/* Alternância Barras vs Linhas */}
+            <div className="flex items-center gap-2 self-end sm:self-center">
+              <div className="flex items-center bg-slate-100 dark:bg-[#161b26] p-1 rounded-xl border border-slate-200 dark:border-slate-800">
+                <button
+                  onClick={() => setChartViewMode('bars')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    chartViewMode === 'bars'
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="Visualizar em barras diárias"
+                >
+                  <BarChart3 className="w-3.5 h-3.5" />
+                  <span>Barras</span>
+                </button>
+                <button
+                  onClick={() => setChartViewMode('lines')}
+                  className={`flex items-center gap-1 px-2.5 py-1 rounded-lg text-xs font-semibold transition-all ${
+                    chartViewMode === 'lines'
+                      ? 'bg-white dark:bg-slate-800 text-slate-900 dark:text-white shadow-xs font-bold'
+                      : 'text-slate-500 hover:text-slate-900 dark:hover:text-white'
+                  }`}
+                  title="Visualizar em curva de linha contínua"
+                >
+                  <LineChartIcon className="w-3.5 h-3.5" />
+                  <span>Linhas</span>
+                </button>
+              </div>
+
+              {/* Total no Período */}
+              <span className="text-xs font-mono font-bold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2.5 py-1 rounded-lg border border-slate-200 dark:border-slate-700">
+                {chartMetric === 'sales_amount' || chartMetric === 'cash_received'
+                  ? formatBRL(chartData.totalMetricVal)
+                  : `${chartData.totalMetricVal} total`}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        {/* ÁREA DO GRÁFICO (BARRAS OU LINHAS COM RÓTULOS SEM SOBREPOSIÇÃO) */}
+        <div className="pt-2">
+          {chartViewMode === 'bars' ? (
+            /* VISUALIZAÇÃO EM BARRAS */
+            <div className="h-56 flex items-end gap-1 sm:gap-2 border-b border-slate-200 dark:border-slate-800 pb-2">
+              {chartData.items.map((item, idx) => {
+                let val = 0;
+                if (chartMetric === 'sales_amount') val = item.salesAmount;
+                else if (chartMetric === 'cash_received') val = item.cashReceived;
+                else if (chartMetric === 'approaches') val = item.approaches;
+                else val = item.salesCount;
+
+                const heightPercent = Math.max(6, Math.round((val / chartData.maxVal) * 100));
+                const isToday = item.date === todayStr;
+
+                // Lógica anti-sobreposição de datas:
+                // No mobile, se houver mais de 10 dias, mostra no máximo 5–6 rótulos espaçados
+                const totalDays = chartData.items.length;
+                const mobileTickInterval = totalDays > 14 ? Math.ceil(totalDays / 5) : totalDays > 7 ? 2 : 1;
+                const shouldShowLabelMobile =
+                  idx === 0 || idx === totalDays - 1 || idx % mobileTickInterval === 0 || isToday;
+
+                return (
+                  <div
+                    key={item.date}
+                    className="flex-1 flex flex-col items-center justify-end h-full group relative min-w-0"
+                  >
+                    {/* Tooltip Hover */}
+                    <div className="absolute -top-14 z-20 hidden group-hover:flex flex-col items-center pointer-events-none">
+                      <div className="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[11px] font-mono font-bold shadow-xl border border-slate-700 whitespace-nowrap">
+                        {item.label}:{' '}
+                        {chartMetric === 'sales_amount'
+                          ? formatBRL(item.salesAmount)
+                          : chartMetric === 'cash_received'
+                          ? formatBRL(item.cashReceived)
+                          : chartMetric === 'approaches'
+                          ? `${item.approaches} abordagem(ns)`
+                          : `${item.salesCount} venda(s)`}
+                      </div>
+                      <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-700"></div>
+                    </div>
+
+                    {/* Valor no Topo da Barra (em telas maiores) */}
+                    {val > 0 && (
+                      <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mb-1 hidden md:block truncate max-w-full">
+                        {chartMetric === 'sales_amount' || chartMetric === 'cash_received'
+                          ? formatBRL(val).replace(',00', '')
+                          : val}
+                      </span>
+                    )}
+
+                    {/* Barra */}
+                    <div
+                      style={{ height: `${heightPercent}%` }}
+                      className={`w-full max-w-[36px] rounded-t-lg transition-all duration-300 ${
+                        chartMetric === 'cash_received'
+                          ? isToday
+                            ? 'bg-emerald-500 shadow-md shadow-emerald-500/20'
+                            : val > 0
+                            ? 'bg-emerald-600/80 hover:bg-emerald-500'
+                            : 'bg-slate-100 dark:bg-slate-800'
+                          : isToday
+                          ? 'bg-[#C9A46B] shadow-md shadow-[#C9A46B]/20'
+                          : val > 0
+                          ? 'bg-[#C9A46B]/80 hover:bg-[#C9A46B]'
+                          : 'bg-slate-100 dark:bg-slate-800'
+                      }`}
+                    />
+
+                    {/* Rótulo da Data com Anti-Sobreposição no Mobile */}
+                    <span
+                      className={`text-[10px] font-mono mt-2 truncate ${
+                        isToday ? 'font-bold text-[#C9A46B]' : 'text-slate-400 dark:text-slate-500'
+                      } ${shouldShowLabelMobile ? 'block' : 'hidden sm:block'}`}
+                    >
+                      {isToday ? 'Hoje' : item.label}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            /* VISUALIZAÇÃO EM LINHAS (SVG COM GRADIENTE) */
+            <div className="space-y-2">
+              <div className="h-56 w-full relative">
+                <svg viewBox="0 0 1000 200" preserveAspectRatio="none" className="w-full h-full overflow-visible">
+                  <defs>
+                    <linearGradient id="chart-area-grad" x1="0" y1="0" x2="0" y2="1">
+                      <stop
+                        offset="0%"
+                        stopColor={chartMetric === 'cash_received' ? '#10b981' : '#C9A46B'}
+                        stopOpacity="0.35"
+                      />
+                      <stop
+                        offset="100%"
+                        stopColor={chartMetric === 'cash_received' ? '#10b981' : '#C9A46B'}
+                        stopOpacity="0.0"
+                      />
+                    </linearGradient>
+                  </defs>
+
+                  {/* Linhas de grade horizontais sutis */}
+                  <line x1="20" y1="20" x2="980" y2="20" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeDasharray="3 3" strokeWidth="1" />
+                  <line x1="20" y1="100" x2="980" y2="100" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeDasharray="3 3" strokeWidth="1" />
+                  <line x1="20" y1="180" x2="980" y2="180" stroke="currentColor" className="text-slate-200 dark:text-slate-800" strokeWidth="1" />
+
+                  {/* Área Preenchida com Gradiente */}
+                  {svgLineChart.areaPath && (
+                    <path d={svgLineChart.areaPath} fill="url(#chart-area-grad)" />
+                  )}
+
+                  {/* Linha Principal da Curva */}
+                  {svgLineChart.linePath && (
+                    <path
+                      d={svgLineChart.linePath}
+                      fill="none"
+                      stroke={chartMetric === 'cash_received' ? '#10b981' : '#C9A46B'}
+                      strokeWidth="3"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  )}
+
+                  {/* Pontos Interativos */}
+                  {svgLineChart.points.map((pt, idx) => (
+                    <g key={idx} className="group cursor-pointer">
+                      <circle
+                        cx={pt.x}
+                        cy={pt.y}
+                        r={pt.val > 0 ? 4 : 2}
+                        className={
+                          pt.date === todayStr
+                            ? 'fill-[#C9A46B] stroke-white dark:stroke-slate-900 stroke-2'
+                            : pt.val > 0
+                            ? 'fill-slate-900 dark:fill-white stroke-[#C9A46B] stroke-2'
+                            : 'fill-slate-300 dark:fill-slate-700'
+                        }
+                      />
+                    </g>
+                  ))}
+                </svg>
+              </div>
+
+              {/* Rótulos de Data Abaixo da Linha */}
+              <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 dark:text-slate-500 px-2 pt-1 border-t border-slate-200 dark:border-slate-800">
+                {chartData.items.map((item, idx) => {
+                  const totalDays = chartData.items.length;
+                  const mobileTickInterval = totalDays > 14 ? Math.ceil(totalDays / 5) : totalDays > 7 ? 2 : 1;
+                  const isToday = item.date === todayStr;
+                  const shouldShow = idx === 0 || idx === totalDays - 1 || idx % mobileTickInterval === 0 || isToday;
+
+                  return (
+                    <span
+                      key={item.date}
+                      className={`${shouldShow ? 'block' : 'hidden sm:block'} ${
+                        isToday ? 'font-bold text-[#C9A46B]' : ''
+                      }`}
+                    >
+                      {isToday ? 'Hoje' : item.label}
+                    </span>
+                  );
+                })}
+              </div>
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* ========================================================= */}
+      {/* SEÇÃO 5: DESEMPENHO POR NICHO (TOP 3 PRIMEIRO)            */}
       {/* ========================================================= */}
       <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 pb-3 border-b border-slate-200 dark:border-slate-800">
@@ -1442,7 +1811,7 @@ export function DashboardView() {
               </h3>
             </div>
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Análise comparativa de volume, respostas, conversão e faturamento por segmento atendido no período.
+              Análise comparativa de volume, respostas, conversão e faturamento por segmento no período.
             </p>
           </div>
 
@@ -1509,7 +1878,7 @@ export function DashboardView() {
           </div>
         </div>
 
-        {/* Visualização Desktop: Tabela Analítica Elegante */}
+        {/* Visualização Desktop: Tabela Analítica Elegante (Top 3 Inicial + Expansão) */}
         <div className="hidden md:block overflow-x-auto">
           <table className="w-full text-left text-xs">
             <thead>
@@ -1525,7 +1894,7 @@ export function DashboardView() {
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-100 dark:divide-slate-800/80">
-              {nicheAnalytics.list.map((item) => {
+              {displayedNiches.map((item) => {
                 const revenuePercent = Math.round((item.revenue / nicheAnalytics.maxRevenue) * 100);
 
                 return (
@@ -1537,7 +1906,6 @@ export function DashboardView() {
                       <div className="font-bold text-slate-900 dark:text-white text-sm">
                         {item.niche}
                       </div>
-                      {/* Barra de contribuição financeira relativa */}
                       <div className="w-32 h-1.5 rounded-full bg-slate-100 dark:bg-slate-800 overflow-hidden mt-1.5">
                         <div
                           className="h-full bg-emerald-500 rounded-full"
@@ -1557,7 +1925,7 @@ export function DashboardView() {
                     <td className="py-3.5 px-3 text-center font-mono">
                       <span className="font-bold text-slate-900 dark:text-white">{item.responses}</span>{' '}
                       <span className="text-slate-400 text-[11px]">
-                        ({formatPercent(item.responseRate)})
+                        ({item.responseRate !== null ? formatPercent(item.responseRate) : 'N/D'})
                       </span>
                     </td>
 
@@ -1570,7 +1938,7 @@ export function DashboardView() {
                     </td>
 
                     <td className="py-3.5 px-3 text-center font-mono font-bold text-[#C9A46B]">
-                      {formatPercent(item.conversionRate)}
+                      {item.conversionRate !== null ? formatPercent(item.conversionRate) : 'N/D'}
                     </td>
 
                     <td className="py-3.5 px-3 text-right font-mono font-bold text-emerald-600 dark:text-emerald-400 text-sm">
@@ -1583,9 +1951,9 @@ export function DashboardView() {
           </table>
         </div>
 
-        {/* Visualização Mobile: Cards Verticais Inteligentes e Responsivos */}
+        {/* Visualização Mobile: Cards Verticais Inteligentes (Top 3 Inicial + Expansão) */}
         <div className="md:hidden space-y-3">
-          {nicheAnalytics.list.map((item, index) => {
+          {displayedNiches.map((item, index) => {
             const revenuePercent = Math.round((item.revenue / nicheAnalytics.maxRevenue) * 100);
 
             return (
@@ -1634,7 +2002,7 @@ export function DashboardView() {
                       {item.approaches}
                     </span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">
-                      {item.totalLeads} na base
+                      {item.totalLeads} cadastrados
                     </span>
                   </div>
 
@@ -1654,7 +2022,7 @@ export function DashboardView() {
                       {item.responses}
                     </span>
                     <span className="text-[10px] text-amber-600 dark:text-amber-400 font-semibold block mt-0.5">
-                      {formatPercent(item.responseRate)} taxa
+                      {item.responseRate !== null ? `${formatPercent(item.responseRate)} taxa` : 'N/D'}
                     </span>
                   </div>
 
@@ -1667,7 +2035,7 @@ export function DashboardView() {
                     }`}
                   >
                     <div className="flex items-center justify-between text-[10px] text-slate-400 mb-0.5">
-                      <span>Vendas Fechadas</span>
+                      <span>Vendas</span>
                       <CheckCircle2 className="w-3 h-3 text-emerald-400" />
                     </div>
                     <span className="font-bold font-mono text-emerald-600 dark:text-emerald-400 text-sm">
@@ -1691,7 +2059,7 @@ export function DashboardView() {
                       <ArrowUpRight className="w-3 h-3 text-[#C9A46B]" />
                     </div>
                     <span className="font-bold font-mono text-[#C9A46B] text-sm">
-                      {formatPercent(item.conversionRate)}
+                      {item.conversionRate !== null ? formatPercent(item.conversionRate) : 'N/D'}
                     </span>
                     <span className="text-[10px] text-slate-400 block mt-0.5">
                       {item.approaches > 0 ? `${item.sales}/${item.approaches} vendas` : 'Sem abordagens'}
@@ -1702,149 +2070,27 @@ export function DashboardView() {
             );
           })}
         </div>
+
+        {/* Botão de Expansão: Ver todos os nichos / Mostrar menos */}
+        {nicheAnalytics.list.length > 3 && (
+          <div className="pt-3 text-center border-t border-slate-100 dark:border-slate-800/80">
+            <button
+              onClick={() => setShowAllNiches(!showAllNiches)}
+              className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold text-[#C9A46B] hover:text-[#e0bb80] bg-[#C9A46B]/10 hover:bg-[#C9A46B]/15 border border-[#C9A46B]/30 transition-all"
+            >
+              <span>
+                {showAllNiches
+                  ? 'Mostrar apenas os Top 3 nichos'
+                  : `Ver todos os ${nicheAnalytics.list.length} nichos cadastrados`}
+              </span>
+              {showAllNiches ? <ChevronUp className="w-4 h-4" /> : <ChevronDown className="w-4 h-4" />}
+            </button>
+          </div>
+        )}
       </div>
 
       {/* ========================================================= */}
-      {/* SEÇÃO 5: GRÁFICO DINÂMICO EM TEMPO REAL "EVOLUÇÃO COMERCIAL" */}
-      {/* ========================================================= */}
-      <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-5">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-          <div>
-            <div className="flex items-center gap-2">
-              <TrendingUp className="w-5 h-5 text-[#C9A46B]" />
-              <h3 className="font-bold text-base sm:text-lg text-slate-900 dark:text-white">
-                Evolução Comercial Diária
-              </h3>
-            </div>
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-              Visualize o comportamento dia a dia de abordagens, vendas e recebimentos em caixa.
-            </p>
-          </div>
-
-          {/* Toggle de 4 Métricas */}
-          <div className="w-full sm:w-auto overflow-x-auto scrollbar-none flex items-center bg-slate-100 dark:bg-[#161b26] p-1 rounded-xl border border-slate-200 dark:border-slate-800 gap-1 touch-pan-x -webkit-overflow-scrolling-touch">
-            <button
-              onClick={() => setChartMetric('sales_amount')}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                chartMetric === 'sales_amount'
-                  ? 'bg-[#C9A46B] text-slate-950 shadow-xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Faturamento (R$)
-            </button>
-            <button
-              onClick={() => setChartMetric('cash_received')}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                chartMetric === 'cash_received'
-                  ? 'bg-emerald-500 text-white shadow-xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Caixa Recebido (R$)
-            </button>
-            <button
-              onClick={() => setChartMetric('approaches')}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                chartMetric === 'approaches'
-                  ? 'bg-[#C9A46B] text-slate-950 shadow-xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Abordagens
-            </button>
-            <button
-              onClick={() => setChartMetric('sales_count')}
-              className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold whitespace-nowrap transition-all ${
-                chartMetric === 'sales_count'
-                  ? 'bg-[#C9A46B] text-slate-950 shadow-xs font-bold'
-                  : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Vendas (Qtd)
-            </button>
-          </div>
-        </div>
-
-        {/* Visualização de Barras Responsivas */}
-        <div className="pt-2">
-          <div className="h-56 flex items-end gap-1.5 sm:gap-3 border-b border-slate-200 dark:border-slate-800 pb-2">
-            {chartData.items.map((item) => {
-              let val = 0;
-              if (chartMetric === 'sales_amount') val = item.salesAmount;
-              else if (chartMetric === 'cash_received') val = item.cashReceived;
-              else if (chartMetric === 'approaches') val = item.approaches;
-              else val = item.salesCount;
-
-              const heightPercent = Math.max(8, Math.round((val / chartData.maxVal) * 100));
-              const isToday = item.date === todayStr;
-
-              return (
-                <div
-                  key={item.date}
-                  className="flex-1 flex flex-col items-center justify-end h-full group relative min-w-0"
-                >
-                  {/* Tooltip Hover */}
-                  <div className="absolute -top-14 z-20 hidden group-hover:flex flex-col items-center pointer-events-none">
-                    <div className="px-2.5 py-1 rounded-lg bg-slate-900 text-white text-[11px] font-mono font-bold shadow-xl border border-slate-700 whitespace-nowrap">
-                      {item.label}:{' '}
-                      {chartMetric === 'sales_amount'
-                        ? formatBRL(item.salesAmount)
-                        : chartMetric === 'cash_received'
-                        ? formatBRL(item.cashReceived)
-                        : chartMetric === 'approaches'
-                        ? `${item.approaches} abordagem(ns)`
-                        : `${item.salesCount} venda(s)`}
-                    </div>
-                    <div className="w-2 h-2 bg-slate-900 rotate-45 -mt-1 border-r border-b border-slate-700"></div>
-                  </div>
-
-                  {/* Valor no Topo da Barra */}
-                  {val > 0 && (
-                    <span className="text-[10px] font-mono text-slate-500 dark:text-slate-400 mb-1 hidden sm:block truncate max-w-full">
-                      {chartMetric === 'sales_amount' || chartMetric === 'cash_received'
-                        ? formatBRL(val).replace(',00', '')
-                        : val}
-                    </span>
-                  )}
-
-                  {/* Barra */}
-                  <div
-                    style={{ height: `${heightPercent}%` }}
-                    className={`w-full max-w-[36px] rounded-t-lg transition-all duration-300 ${
-                      chartMetric === 'cash_received'
-                        ? isToday
-                          ? 'bg-emerald-500 shadow-md shadow-emerald-500/20'
-                          : val > 0
-                          ? 'bg-emerald-600/80 hover:bg-emerald-500'
-                          : 'bg-slate-100 dark:bg-slate-800'
-                        : isToday
-                        ? 'bg-[#C9A46B] shadow-md shadow-[#C9A46B]/20'
-                        : val > 0
-                        ? 'bg-[#C9A46B]/80 hover:bg-[#C9A46B]'
-                        : 'bg-slate-100 dark:bg-slate-800'
-                    }`}
-                  />
-
-                  {/* Rótulo da Data */}
-                  <span
-                    className={`text-[10px] font-mono mt-2 truncate ${
-                      isToday
-                        ? 'font-bold text-[#C9A46B]'
-                        : 'text-slate-400 dark:text-slate-500'
-                    }`}
-                  >
-                    {isToday ? 'Hoje' : item.label}
-                  </span>
-                </div>
-              );
-            })}
-          </div>
-        </div>
-      </div>
-
-      {/* ========================================================= */}
-      {/* SEÇÃO 6: OFENSIVA DUOLINGO (COMPACTA) + DISTRIBUIÇÃO FUNIL */}
+      {/* SEÇÃO 6: OFENSIVA DUOLINGO + DISTRIBUIÇÃO FUNIL           */}
       {/* ========================================================= */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Banner de Ofensiva Comercial Duolingo (Compacto) */}
@@ -1856,23 +2102,23 @@ export function DashboardView() {
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-xl font-black text-slate-900 dark:text-white font-sans tracking-tight">
-                  {currentStreak} Dias
+                  {duolingoStreak.currentStreak} Dias
                 </span>
                 <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-500 text-slate-950">
                   OFENSIVA
                 </span>
               </div>
               <p className="text-xs text-slate-600 dark:text-slate-400 mt-0.5">
-                {streakStatus.isSaved
+                {duolingoStreak.streakStatus.isSaved
                   ? 'Fogo aceso! Meta de hoje batida.'
-                  : `Faltam ${streakStatus.remaining} abordagens para salvar seu dia.`}
+                  : `Faltam ${duolingoStreak.streakStatus.remaining} abordagens para salvar seu dia.`}
               </p>
             </div>
           </div>
 
           {/* 7 Dias da Semana em Círculos */}
           <div className="flex items-center justify-between gap-1.5 pt-1">
-            {weekDays.map((day, idx) => (
+            {duolingoStreak.weekDays.map((day, idx) => (
               <div key={idx} className="flex flex-col items-center gap-1">
                 <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">
                   {day.label}
@@ -1948,7 +2194,7 @@ export function DashboardView() {
       </div>
 
       {/* ========================================================= */}
-      {/* SEÇÃO 7: ATIVIDADE RECENTE                                */}
+      {/* SEÇÃO 7: ATIVIDADE RECENTE (TOP 3 PRIMEIRO)               */}
       {/* ========================================================= */}
       <div className="p-5 sm:p-6 rounded-2xl bg-white dark:bg-[#151922] border border-slate-200 dark:border-slate-800 shadow-xs space-y-4">
         <div className="flex items-center justify-between pb-3 border-b border-slate-200 dark:border-slate-800">
@@ -1968,7 +2214,7 @@ export function DashboardView() {
           </p>
         ) : (
           <div className="divide-y divide-slate-100 dark:divide-slate-800/80">
-            {recentActivities.map((act) => (
+            {displayedActivities.map((act) => (
               <div key={act.id} className="py-2.5 flex items-center justify-between text-xs">
                 <div className="min-w-0 pr-2">
                   <span className="font-bold text-slate-900 dark:text-white block truncate">
@@ -1983,6 +2229,18 @@ export function DashboardView() {
                 </span>
               </div>
             ))}
+          </div>
+        )}
+
+        {recentActivities.length > 3 && (
+          <div className="pt-2 text-center border-t border-slate-100 dark:border-slate-800/80">
+            <button
+              onClick={() => setShowAllActivities(!showAllActivities)}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+            >
+              <span>{showAllActivities ? 'Mostrar menos' : `Ver mais atividades (${recentActivities.length})`}</span>
+              {showAllActivities ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+            </button>
           </div>
         )}
       </div>
@@ -2025,7 +2283,7 @@ export function DashboardView() {
                 className="w-full h-11 px-3.5 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm font-mono font-bold text-slate-900 dark:text-white focus:outline-none focus:border-[#C9A46B]"
               />
               <p className="text-[11px] text-slate-400 mt-1.5">
-                Esta meta é salva nas configurações e reflete diretamente nas barras de progresso do dashboard.
+                Esta meta é salva de forma persistente no navegador e refletirá diretamente nas barras de progresso do dashboard.
               </p>
             </div>
 

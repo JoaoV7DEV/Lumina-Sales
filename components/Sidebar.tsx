@@ -75,43 +75,53 @@ export function Sidebar({
         } ${isCollapsed && !mobileOpen ? 'md:w-20' : 'md:w-64'}`}
       >
         {/* Topo: Logo & Botão de Recolher/Fechar */}
-        <div className={`p-4 ${isCollapsed && !mobileOpen ? 'px-3' : 'px-5'} pb-3 border-b border-slate-800/60`}>
-          <div className="flex items-center justify-between">
-            <div
-              onClick={() => handleSelectTab('dashboard')}
-              className="cursor-pointer group flex items-center min-w-0"
-              title="Lumina Sales - Início"
-            >
-              <BrandLogo
-                size="md"
-                showText={!isCollapsed || mobileOpen}
-              />
-            </div>
-
-            {/* Botão de Fechar no Mobile */}
-            <button
-              onClick={onCloseMobile}
-              className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 md:hidden"
-              title="Fechar menu"
-            >
-              <X className="w-5 h-5" />
-            </button>
-
-            {/* Botão de Recolher no Desktop */}
-            <button
-              onClick={onToggleCollapse}
-              className={`hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors ${
-                isCollapsed ? 'mx-auto mt-2' : ''
-              }`}
-              title={isCollapsed ? 'Expandir menu lateral' : 'Recolher menu lateral'}
-            >
-              {isCollapsed ? (
+        <div className={`p-4 ${isCollapsed && !mobileOpen ? 'px-2 flex flex-col items-center gap-3' : 'px-5'} pb-3 border-b border-slate-800/60`}>
+          {isCollapsed && !mobileOpen ? (
+            <>
+              <div
+                onClick={() => handleSelectTab('dashboard')}
+                className="cursor-pointer group flex items-center justify-center"
+                title="Lumina Sales - Início"
+              >
+                <BrandLogo size="md" showText={false} />
+              </div>
+              <button
+                onClick={onToggleCollapse}
+                className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:text-white hover:bg-slate-800 transition-colors"
+                title="Expandir menu lateral"
+              >
                 <PanelLeftOpen className="w-4 h-4 text-[#C9A46B]" />
-              ) : (
+              </button>
+            </>
+          ) : (
+            <div className="flex items-center justify-between gap-2">
+              <div
+                onClick={() => handleSelectTab('dashboard')}
+                className="cursor-pointer group flex items-center min-w-0"
+                title="Lumina Sales - Início"
+              >
+                <BrandLogo size="md" showText={true} />
+              </div>
+
+              {/* Botão de Fechar no Mobile */}
+              <button
+                onClick={onCloseMobile}
+                className="p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 md:hidden"
+                title="Fechar menu"
+              >
+                <X className="w-5 h-5" />
+              </button>
+
+              {/* Botão de Recolher no Desktop */}
+              <button
+                onClick={onToggleCollapse}
+                className="hidden md:flex p-1.5 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition-colors shrink-0"
+                title="Recolher menu lateral"
+              >
                 <PanelLeftClose className="w-4 h-4" />
-              )}
-            </button>
-          </div>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Lista de Navegação Principal */}

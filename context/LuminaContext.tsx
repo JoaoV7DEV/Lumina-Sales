@@ -113,7 +113,7 @@ interface LuminaContextType {
   // Settings & Utilities
   theme: 'dark' | 'light';
   toggleTheme: () => void;
-  updateSettings: (settings: Partial<AppSettings>) => void;
+  updateSettings: (settings: Partial<AppSettings>) => Promise<void> | void;
   checkDuplicateLead: (phone?: string, instagram?: string, excludeLeadId?: string) => {
     isDuplicate: boolean;
     reason?: string;
@@ -1073,7 +1073,8 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
 
   // Configurações & Utilitários
   const updateSettings = useCallback(
-    (settings: Partial<AppSettings>) => {
+    async (settings: Partial<AppSettings>) => {
+      let updatedState: DatabaseState | null = null;
       setState((prev) => {
         const updated = {
           ...prev,
@@ -1082,9 +1083,12 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
             ...settings,
           },
         };
-        saveDatabaseState(updated);
+        updatedState = updated;
         return updated;
       });
+      if (updatedState) {
+        await saveDatabaseState(updatedState);
+      }
       showToast('Configurações salvas!');
     },
     [showToast]
@@ -1092,21 +1096,21 @@ export function LuminaProvider({ children }: { children: React.ReactNode }) {
 
   const toggleDemoData = useCallback(async () => {
     if (state.settings.isDemoData) {
-      const clean = await resetToCleanState();
+      const clean = await resetToCleanState(state.settings);
       setState(clean);
-      showToast('Base limpa carregada para operação real.');
+      showToast('Base real ativada. Suas metas e configurações foram mantidas.');
     } else {
-      const demo = await resetToDemoState();
+      const demo = await resetToDemoState(state.settings);
       setState(demo);
-      showToast('Base com dados demonstrativos restaurada.');
+      showToast('Modo exemplo restaurado. Suas metas e configurações foram mantidas.');
     }
-  }, [state.settings.isDemoData, showToast]);
+  }, [state.settings, showToast]);
 
   const resetToClean = useCallback(async () => {
-    const clean = await resetToCleanState();
+    const clean = await resetToCleanState(state.settings);
     setState(clean);
-    showToast('Base limpa com sucesso!');
-  }, [showToast]);
+    showToast('Base limpa com sucesso! Suas configurações foram preservadas.');
+  }, [state.settings, showToast]);
 
   const exportBackup = useCallback(() => {
     exportDatabaseBackupJson(state);

@@ -105,14 +105,14 @@ export function TopHeader({ onOpenMobileSidebar, onOpenTimerModal }: TopHeaderPr
           <span>Novo lead</span>
         </button>
 
-        {/* Versão Mobile: Botão Dedicado Quadrado Arredondado com Ícone UserRoundPlus */}
+        {/* Versão Mobile: Botão Dedicado Quadrado Arredondado com Ícone UserRoundPlus (Touch-friendly 40px) */}
         <button
           onClick={openNewLeadModal}
-          className="flex sm:hidden w-9 h-9 rounded-xl bg-[#111622] hover:bg-[#18202e] dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 shadow-sm transition-all items-center justify-center shrink-0"
+          className="flex sm:hidden w-10 h-10 rounded-xl bg-[#111622] hover:bg-[#18202e] dark:bg-white dark:hover:bg-slate-100 text-white dark:text-slate-950 shadow-sm transition-all items-center justify-center shrink-0 active:scale-95"
           title="Cadastrar novo lead"
           aria-label="Cadastrar novo lead"
         >
-          <UserRoundPlus className="w-4 h-4 stroke-[2.2]" />
+          <UserRoundPlus className="w-5 h-5 stroke-[2.2]" />
         </button>
       </div>
     </header>
